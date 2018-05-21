@@ -14,6 +14,7 @@
 
 \documentclass[11pt,a4paper]{article}
 \usepackage[hyperref]{emnlp2018}
+\hypersetup{draft}
 \usepackage{times}
 \usepackage{latexsym}
 \usepackage{amsmath}
@@ -60,25 +61,27 @@
 \maketitle
 \begin{abstract}
 
-We propose a method for learning \emph{disentangled} sets of vector representations of texts that code for distinct aspects. We argue that such representations afford efficient model transfer and interpretability. To induce disentangled embeddings, we propose an adversarial objective based on the (dis)similarity between triplets of documents w.r.t. specific aspects. Our motivating application concerns embedding biomedical abstracts describing clinical trials in a manner that disentangles the \emph{populations}, \emph{interventions}, and \emph{outcomes} in a given trial. We show that our method learns representations that encode these clinically salient aspects, and that these can be effectively used to perform aspect-specific retrieval. We demonstrate that the approach generalizes beyond our motivating application via experiments on two multi-aspect review corpora. 
+We propose a method for learning \emph{disentangled} representations of texts that code for distinct and complementary aspects, with the aim of affording efficient model transfer and interpretability. To induce disentangled embeddings, we propose an adversarial objective based on the (dis)similarity between triplets of documents w.r.t.~specific aspects. Our motivating application is embedding biomedical abstracts describing clinical trials in a manner that disentangles the \emph{populations}, \emph{interventions}, and \emph{outcomes} in a given trial. We show that our method learns representations that encode these clinically salient aspects, and that these can be effectively used to perform aspect-specific retrieval. We demonstrate that the approach generalizes beyond our motivating application in experiments on two multi-aspect review corpora. 
 \end{abstract}
 
 \section{Introduction}
 \vspace{-.5em}
 
-A classic problem that arises in (distributed) representation learning is that it is difficult to determine what information that specific dimensions encode. When training a classifier to distinguish between images of people and landscapes, we do not know \emph{a priori} whether the model is sensitive to differences in color, contrast, shapes or textures. Analogously, in the case of natural language, when we calculate similarities between document embeddings of user reviews, we cannot know if this similarity primarily reflects user sentiment, the product discussed or syntactic patterns. This lack of interpretability is a major limitation of neural representation learning for language. It makes it difficult to assess whether a learned encoder is likely to generalize to a new task or domain, hindering model transferability. Disentangled representations with known semantics could allow more efficient training in settings in which supervision is expensive to obtain (e.g., biomedical NLP).
+A classic problem that arises in (distributed) representation learning is that it is difficult to determine what information specific dimensions in an embedding encode. When training a classifier to distinguish between images of people and landscapes, we do not know \emph{a priori} whether the model is sensitive to differences in color, contrast, shapes or textures. Analogously, in the case of natural language, when we calculate similarities between document embeddings of user reviews, we cannot know if this similarity primarily reflects user sentiment, the product discussed or syntactic patterns. This lack of interpretability 
+%is a major limitation of neural representation learning for language. It 
+makes it difficult to assess whether a learned representations is likely to generalize to a new task or domain, hindering model transferability. Disentangled representations with known semantics could allow more efficient training in settings in which supervision is expensive to obtain (e.g., biomedical NLP).
 
 % bcw 5/18 -- might want to work in some verbiage about recent universal encoder models as further motivation.. 
 Thus far in NLP, learned distributed representations have, with few exceptions \cite{ruder2016hierarchical,he-2017,zhang2017aspect}, been \emph{entangled}: they indiscriminately encode all aspects of texts. 
 Rather than representing text via a monolithic vector, we propose to estimate multiple embeddings that capture complementary aspects of texts, drawing inspiration from the ML in vision community \cite{whitney2016disentangled,veit2017conditional}.
 
-As a motivating example we consider documents that describe clinical trials. Such publications constitute the evidence drawn upon to support \emph{evidence-based medicine} (EBM), in which one formulates precise clinical questions with respect to the Populations, Interventions, Comparators and Outcomes (PICO elements) of interest \cite{sackett1996evidence}.\footnote{We collapse I and C because the distinction is arbitrary.} Ideally, learned representations of such articles would factorize into embeddings for the respective PICO elements. This would enable aspect-specific similarity measures, in turn facilitating retrieval of evidence concerning a given condition of interest (i.e., in a specific patient population), regardless of the interventions and outcomes considered. Note that supervision is expensive in this domain: better representations may mitigate this issue.
+As a motivating example we consider documents that describe clinical trials. Such publications constitute the evidence drawn upon to support \emph{evidence-based medicine} (EBM), in which one formulates precise clinical questions with respect to the Populations, Interventions, Comparators and Outcomes (PICO elements) of interest \cite{sackett1996evidence}.\footnote{We collapse I and C because the distinction is arbitrary.} Ideally, learned representations of such articles would factorize into embeddings for the respective PICO elements. This would enable aspect-specific similarity measures, in turn facilitating retrieval of evidence concerning a given condition of interest (i.e., in a specific patient population), regardless of the interventions and outcomes considered. Better representations may reduce the amount of supervision data needed, which is expensive in this domain.
 
 Our work is one of the first efforts to induce disentangled representations of texts,\footnote{We review the few recent related works that do exist in Section \ref{section:related-work}.} which we believe may be broadly useful in NLP. Concretely, our contributions in this paper are as follows:
 
 \vspace{-.4em}
 \begin{itemize}[leftmargin=1.0em]
-\item We formalize the problem of learning disentangled representations of texts, and develop a relatively general approach for learning these from aspect-specific similarity judgments expressed as triplets $(s, d, o)_a$, where this implies that document $d$ is more similar to document $s$ than to document $o$, with respect to aspect $a$.
+\item We formalize the problem of learning disentangled representations of texts, and develop a relatively general approach for learning these from aspect-specific similarity judgments expressed as triplets $(s, d, o)_a$, which indicate that document $d$ is more similar to document $s$ than to document $o$, with respect to aspect $a$.
 \vspace{-.5em}
 \item We perform extensive experiments that provide evidence that our approach yields disentangled representations of texts, both for our motivating task of learning PICO-specific embeddings of biomedical abstracts, and, more generally, for multi-aspect sentiment corpora.
 \end{itemize}
@@ -86,13 +89,13 @@ Our work is one of the first efforts to induce disentangled representations of t
 \vspace{-.65em}
 \section{Framework and Models}
 \vspace{-.5em}
-Recent approaches in computer vision have emphasized unsupervised learning of disentangled representations by incorporating information-theoretic regularizers into the objective \cite{chen2016infogan,higgins2017beta-vae}. While unsupervised learning of disentangled embeddings of texts would alleviate the need for any sort of explicit annotations, it would also require post-hoc manual assignment of meaningful interpretations to learned representations. We believe it is more natural to use weak supervision to induce meaningful aspect embeddings.
+Recent approaches in computer vision have emphasized unsupervised learning of disentangled representations by incorporating information-theoretic regularizers into the objective \cite{chen2016infogan,higgins2017beta-vae}. While these approaches have the advantage of not requiring explicit annotations, they do require post-hoc manual assignment of meaningful interpretations to learned representations. We believe it is more natural to use weak supervision to induce meaningful aspect embeddings.
 
 \vspace{-.3em}
 \subsection{Learning from Aspect Triplets}
 \vspace{-.3em}
 
-As a general strategy for learning disentangled representations, we propose exploiting aspect-specific document triplets $(s,d,o)_a$: this signals that $s$ and $d$ are \emph{more} similar than are $d$ and $o$, with respect to aspect $a$ \cite{karaletsos2015bayesian,veit2016conditional}, i.e., $\text{sim}_a (d, s) > \text{sim}_a (d, o)$, where sim$_a$ quantifies similarity w.r.t. aspect $a$. 
+As a general strategy for learning disentangled representations, we propose exploiting aspect-specific document triplets $(s,d,o)_a$: this signals that $s$ and $d$ are \emph{more} similar than are $d$ and $o$, with respect to aspect $a$ \cite{karaletsos2015bayesian,veit2016conditional}, i.e., $\text{sim}_a (d, s) > \text{sim}_a (d, o)$, where sim$_a$ quantifies similarity w.r.t.~aspect $a$. 
 
 %\begin{equation}
 %\text{sim}_a (d, s) < \text{sim}_a (d, o)
@@ -220,7 +223,7 @@ Designing an aspect-based model requires specifying an encoder architecture. One
 
 % bcw: to clarify -- H_l is indeed a matrix now?
 % bcw 2/19: schematizes is too a word, overleaf!!
-Figure \ref{fig:encoder} schematizes our encoder architecture. It consumes as input a sequence of word indices $d = (w_{1}, ..., w_{N})$ which are mapped to $m$-dimensional word embeddings and stacked into a matrix $E = [{\mathbf e}_1, ..., {\mathbf e}_N]$. These are passed through sequential convolutional layers $C_1, ..., C_L$, which induce representations $H_l \in \mathbb{R}^{N \times k}$:
+Figure \ref{fig:encoder} schematizes our encoder architecture. The input is a sequence of word indices $d = (w_{1}, ..., w_{N})$ which are mapped to $m$-dimensional word embeddings and stacked into a matrix $E = [{\mathbf e}_1, ..., {\mathbf e}_N]$. These are passed through sequential convolutional layers $C_1, ..., C_L$, which induce representations $H_l \in \mathbb{R}^{N \times k}$:
 
 \vspace{-.5em}
 \begin{equation}
@@ -375,34 +378,35 @@ The preceding setup assumes a somewhat unique case in which we have access to as
 % bcw 2/19 -- i think we might want to move the table up a page.
 \begin{table*}%[!htb]
 \small
-\setlength{\tabcolsep}{3pt}
 \centering
 \begin{tabular}{l r r r r r|r r || r r r r}
-Study &  TF-IDF &  Doc2Vec&  LDA &  NVDM &  ABAE&  RR-TF &  DSSM & $\mathbf{P}$ & $\mathbf{I}$ & $\mathbf{O}$ & $\mathbf{[P|I|O]}$ \\ 
 \hline
-ACEInhib.  & 0.81 & 0.74 & 0.72 & 0.85 & 0.81 & 0.67 & 0.85 & 0.83 & 0.88 & 0.84 &  \textbf{0.92} \\
-ADHD  & 0.90 & 0.82 & 0.83 &  \textbf{0.93}  & 0.77 & 0.85 & 0.83 & 0.86 & 0.75 & 0.91 &  0.89 \\ 
-Antihist. & 0.81 & 0.73 & 0.67 & 0.79 & 0.84 & 0.72 & \textbf{0.91} & 0.88 & 0.84 & 0.89 &  \textbf{0.91} \\  
-Antipsych.  & 0.75 & 0.85 & 0.88 & 0.89 & 0.81 & 0.63 & 0.96 & 0.91 & 0.93 &  \textbf{0.97} &  \textbf{0.97} \\ 
-BetaBlockers  & 0.67 & 0.65 & 0.61 & 0.76 & 0.70 & 0.56 & 0.68 & 0.71 & 0.75 & 0.77 &  \textbf{0.81} \\ 
-CCBlockers  & 0.67 & 0.60 & 0.67 & 0.70 & 0.69 & 0.58 & 0.76 & 0.73 & 0.69 & 0.74 &  \textbf{0.77} \\ 
-Estrogens  & 0.87 & 0.85 & 0.60 & 0.94 & 0.85 & 0.82 & 0.96 &  \textbf{1.00} & 0.98 & 0.83 &  \textbf{1.00} \\ 
-NSAIDS  & 0.85 & 0.77 & 0.73 & 0.9 & 0.77 & 0.74 & 0.89 & 0.94 &  \textbf{0.95} & 0.8 &  \textbf{0.95} \\ 
-Opiods  & 0.81 & 0.75 & 0.80 & 0.83 & 0.77 & 0.76 & 0.86 & 0.80 & 0.83 &  \textbf{0.92} &  \textbf{0.92} \\ 
-OHG  & 0.79 & 0.80 & 0.70 & 0.89 & 0.90 & 0.72 & 0.90 & 0.90 & 0.95 & 0.95 &  \textbf{0.96} \\
-PPI  & 0.81 & 0.79 & 0.74 & 0.85 & 0.82 & 0.68 & 0.94 & 0.94 & 0.87 & 0.87 &  \textbf{0.95} \\  
-MuscleRelax.  & 0.60 & 0.67 & 0.74 & 0.75 & 0.61 & 0.57 & 0.77 & 0.68 & 0.62 &  \textbf{0.78}&  0.75 \\ 
-Statins  & 0.79 & 0.76 & 0.66 & 0.87 & 0.77 & 0.68 & 0.87 & 0.82 &  \textbf{0.94} & 0.87 &  \textbf{0.94} \\  
-Triptans  & 0.92 & 0.82 & 0.83 & 0.92 & 0.75 & 0.81 & \textbf{0.97}& 0.93 & 0.79 &  \textbf{0.97}  &  \textbf{0.97} \\  
+Method &  TF-IDF &  Doc2Vec&  LDA &  NVDM &  ABAE&  RR-TF &  DSSM & $\mathbf{P}$ & $\mathbf{I}$ & $\mathbf{O}$ & $\mathbf{[P|I|O]}$ \\ 
+\hline
+% ACEInhib.  & 0.81 & 0.74 & 0.72 & 0.85 & 0.81 & 0.67 & 0.85 & 0.83 & 0.88 & 0.84 &  \textbf{0.92} \\
+% ADHD  & 0.90 & 0.82 & 0.83 &  \textbf{0.93}  & 0.77 & 0.85 & 0.83 & 0.86 & 0.75 & 0.91 &  0.89 \\ 
+% Antihist. & 0.81 & 0.73 & 0.67 & 0.79 & 0.84 & 0.72 & \textbf{0.91} & 0.88 & 0.84 & 0.89 &  \textbf{0.91} \\  
+% Antipsych.  & 0.75 & 0.85 & 0.88 & 0.89 & 0.81 & 0.63 & 0.96 & 0.91 & 0.93 &  \textbf{0.97} &  \textbf{0.97} \\ 
+% BetaBlockers  & 0.67 & 0.65 & 0.61 & 0.76 & 0.70 & 0.56 & 0.68 & 0.71 & 0.75 & 0.77 &  \textbf{0.81} \\ 
+% CCBlockers  & 0.67 & 0.60 & 0.67 & 0.70 & 0.69 & 0.58 & 0.76 & 0.73 & 0.69 & 0.74 &  \textbf{0.77} \\ 
+% Estrogens  & 0.87 & 0.85 & 0.60 & 0.94 & 0.85 & 0.82 & 0.96 &  \textbf{1.00} & 0.98 & 0.83 &  \textbf{1.00} \\ 
+% NSAIDS  & 0.85 & 0.77 & 0.73 & 0.9 & 0.77 & 0.74 & 0.89 & 0.94 &  \textbf{0.95} & 0.8 &  \textbf{0.95} \\ 
+% Opiods  & 0.81 & 0.75 & 0.80 & 0.83 & 0.77 & 0.76 & 0.86 & 0.80 & 0.83 &  \textbf{0.92} &  \textbf{0.92} \\ 
+% OHG  & 0.79 & 0.80 & 0.70 & 0.89 & 0.90 & 0.72 & 0.90 & 0.90 & 0.95 & 0.95 &  \textbf{0.96} \\
+% PPI  & 0.81 & 0.79 & 0.74 & 0.85 & 0.82 & 0.68 & 0.94 & 0.94 & 0.87 & 0.87 &  \textbf{0.95} \\  
+% MuscleRelax.  & 0.60 & 0.67 & 0.74 & 0.75 & 0.61 & 0.57 & 0.77 & 0.68 & 0.62 &  \textbf{0.78}&  0.75 \\ 
+% Statins  & 0.79 & 0.76 & 0.66 & 0.87 & 0.77 & 0.68 & 0.87 & 0.82 &  \textbf{0.94} & 0.87 &  \textbf{0.94} \\  
+% Triptans  & 0.92 & 0.82 & 0.83 & 0.92 & 0.75 & 0.81 & \textbf{0.97}& 0.93 & 0.79 &  \textbf{0.97}  &  \textbf{0.97} \\  
+AUC & 0.79 & 	0.76 & 	0.73 & 	0.85 & 	0.78 & 	0.70 & 	0.87 & 	0.85 & 	0.84 & 	0.87 & 	0.91
 \end{tabular}
 \vspace{-.65em}
-\caption{AUCs achieved using different representations on the \newcite{cohen2006reducing} corpus. Models to the right of the $\vert$ are supervised; those to the right of $\vert \vert$ constitute the proposed disentangled embeddings. } 
+\caption{Mean AUCs achieved using different representations over the \newcite{cohen2006reducing} corpus. Models to the right of the $\vert$ are supervised; those to the right of $\vert \vert$ use the proposed disentangled embeddings. } 
 %\vspace{-1em}
 \label{table:cohenauc}
 \end{table*}
 
 
-We present a series of experiments on three corpora that aim to assess the degree to which the learned representations are disentangled, and the utility of such embeddings in simple downstream retrieval tasks. We are particularly interested in the ability to identify documents similar w.r.t. a target aspect. All parameter settings for baselines are reported in the Appendix (along with additional experimental results), and all code will be made available upon publication.
+We present a series of experiments on three corpora to assess the degree to which the learned representations are disentangled, and to evaluate the utility of the embeddings in simple downstream retrieval tasks. We are particularly interested in the ability to identify documents similar w.r.t.~a target aspect. All parameter settings for baselines are reported in the Appendix (along with additional experimental results), and all code will be made available upon publication.
 %In this section, we present the experimental results on 3 datasets to validate our proposed approach.
 
 \vspace{-.5em}
@@ -441,7 +445,9 @@ The PICO dataset comprises 41K abstracts of articles describing clinical trials 
 
 
 \vspace{.15em}
-\noindent \textbf{Results}. Table \ref{table:cohenauc} reports summary AUCs for each review in the Cohen corpus achieved under different representations. The proposed PICO embeddings obtain an equivalent or higher AUC than baseline strategies on 12/14 reviews, and strictly higher AUCs in 11/14. It is unsurprising that we outperform unsupervised approaches, but we also best RR-TF, which was trained with the same CDSR corpus \cite{wallace2016extracting}, and DSSM \cite{shen2014latent}, which exploits the same triplet loss as our model. We now turn to evaluate the more important questions: are the learned representations actually disentangled, and do they encode the target aspects? 
+\noindent \textbf{Results}. Table \ref{table:cohenauc} reports the mean summary AUC over the set of reviews in the \newcite{cohen2006reducing} corpus. We report detailed results (on each individual review) in the Appendix. In brief: The proposed PICO embeddings obtain an equivalent or higher AUC than baseline strategies on 12/14 reviews, and strictly higher AUCs in 11/14. It is unsurprising that we outperform unsupervised approaches, but we also best RR-TF, which was trained with the same CDSR corpus \cite{wallace2016extracting}, and DSSM \cite{shen2014latent}, which exploits the same triplet loss as our model. Indeed, we outperform the latter by a mean performance gain of 4 points AUC. 
+
+We now turn to the more important questions: are the learned representations actually disentangled, and do they encode the target aspects? 
 
 %Further, concatenating all aspect embeddings usually results in better performance than using any one independently, suggesting that they indeed capture complementary information. 
 
@@ -471,7 +477,7 @@ Figure \ref{figure:DATSNE} shows a TSNE-reduced plot of the P, I/C and O embeddi
 % 0.75 & 0.57 & 0.59 & 0.70 \\
 % \end{tabularx}
 % \vspace{-1em}
-% \caption{Average pairwise AUCs for decision aids studies under the learned aspect embeddings, calculated w.r.t. the known population groupings.}
+% \caption{Average pairwise AUCs for decision aids studies under the learned aspect embeddings, calculated w.r.t.~the known population groupings.}
 % \label{table:AUCs-DA}
 % \vspace{-1em}
 % \end{table}
@@ -484,6 +490,7 @@ Next we assembled 50 abstracts describing trials involving \emph{hip replacement
 \begin{table}
 \small
 \begin{tabularx}{\columnwidth}{c|X X X}
+\hline
 & HipRepl I & HipRepl P & Mean \\ \hline
 Population & 0.62 & \textbf{0.68} & \textbf{0.66} \\ 
 Intervention & \textbf{0.91} & 0.46 & 0.57 \\ 
@@ -598,7 +605,7 @@ We conducted experiments on the BeerAdvocate dataset \cite{mcauley2012learning},
 \vspace{.25em}
 \noindent \textbf{Results} We report the AUC measures for each aspect on our test set using different representations in Table \ref{table:beerauc}. Our model consistently outperforms baseline strategies over all aspects. Unsurprisingly, the model outperforms unsupervised approaches.\footnote{We are not sure why ABAE \cite{he-2017} performs so poorly on the review corpora. It may simply fail to prominently encode sentiment, which is important for these tasks. We note that this model performs reasonably well on the PICO data above, and qualitatively seems to recover reasonable aspects (though not specifically sentiment).} We realize consistent (though modest) improvement over triplet-supervised approaches that use alternative encoders. %though clearly  triplet-loss is more important than the specific encoder architecture used. 
 
-In Table \ref{table:beercrossauc} we present cross AUC evaluations. Rows correspond to the embedding used and columns to the aspect evaluated against. As expected, aspect-embeddings perform better w.r.t. the aspects for which they code, suggesting some disentanglement. However, the reduction in performance when using one aspect representation to discriminate w.r.t. others is not as pronounced as above. This is because aspect ratings are highly correlated: if taste is positive, aroma is very likely to be as well. Effectively, here sentiment entangles all of these aspects.\footnote{Another view is that we are in fact inducing representations of $<$aspect, sentiment$>$ pairs, and only the aspect varies across these; thus representations remain discriminative (w.r.t. sentiment) across aspects.} To further delve into this, we report results on `decorrelated' subsets of the BeerAdvocate data in the Appendix. 
+In Table \ref{table:beercrossauc} we present cross AUC evaluations. Rows correspond to the embedding used and columns to the aspect evaluated against. As expected, aspect-embeddings perform better w.r.t.~the aspects for which they code, suggesting some disentanglement. However, the reduction in performance when using one aspect representation to discriminate w.r.t.~others is not as pronounced as above. This is because aspect ratings are highly correlated: if taste is positive, aroma is very likely to be as well. Effectively, here sentiment entangles all of these aspects.\footnote{Another view is that we are in fact inducing representations of $<$aspect, sentiment$>$ pairs, and only the aspect varies across these; thus representations remain discriminative (w.r.t.~sentiment) across aspects.} To further delve into this, we report results on `decorrelated' subsets of the BeerAdvocate data in the Appendix. 
 
 We present the most activated words for each aspect (as per the gating mechanism) in Table \ref{table:Beermost}. And we present an illustrative review color-coded with aspect-wise gate activations in Table \ref{table:beer-example}. For completeness, we reproduce the top words for aspects discovered using \newcite{he-2017} in the Appendix; these do not obviously align with the target aspects, which is unsurprising given that this is an unsupervised method.
 
@@ -712,13 +719,13 @@ Recently, \newcite{he-2017} introduced a neural model for aspect extraction that
 
 %They first induce a sentence embedding $z_s$ and then attempt to reconstruct this via a simple autoencoder which is designed to explicitly tease apart aspects. More specifically, the decoder component of the model reconstructs the input sentence via a linear combination of latent aspect embedding representations. To discourage redundancy between the learned aspects, they introduced a regularization penalty that explicitly encourages aspect embedding diversity. They were able to uncover meaningful aspects from text using this method. 
 
-Other recent work has focused on text \emph{generation} from factorized representations \cite{larsson2017disentangled}. And \newcite{zhang2017aspect} proposed a lightly supervised method for \emph{domain adaptation} using aspect-augmented neural networks. They exploited \emph{source} document labels to train a classifier for a \emph{target} aspect. They leveraged sentence-level scores codifying sentence relevance w.r.t. individual aspects, which were derived from terms \emph{a priori} associated with aspects. This supervision is used to construct a composite loss that captures both classification performance on the source task and a term that enforces \emph{invariance} between source and target representations.
+Other recent work has focused on text \emph{generation} from factorized representations \cite{larsson2017disentangled}. And \newcite{zhang2017aspect} proposed a lightly supervised method for \emph{domain adaptation} using aspect-augmented neural networks. They exploited \emph{source} document labels to train a classifier for a \emph{target} aspect. They leveraged sentence-level scores codifying sentence relevance w.r.t.~individual aspects, which were derived from terms \emph{a priori} associated with aspects. This supervision is used to construct a composite loss that captures both classification performance on the source task and a term that enforces \emph{invariance} between source and target representations.
 
 %They use this supervision to induce aspect-specific representations of input texts by minimizing a loss that includes terms capturing classification performance on the source task, and an adversarial loss that attempts to enforce invariance between representations of source and target representations. 
 
 %On the other hand, in many tasks we cannot explicitly label or even define discrete values for a given aspect whereas similarity judgments are easier to obtain.
 
-And then there is a large body of work that uses probabilistic generative models to recover latent structure in texts. Many of these models derive from Latent Dirichlet Allocation (LDA) \cite{blei2003latent}. Some variants of topic modeling have explicitly represented topics and aspects jointly for sentiment tasks \cite{brody2010unsupervised,sauper2010incorporating,sauper2011content,mukherjee2012aspect,sauper2013automatic,kim2013hierarchical}. A bit more generally, \emph{aspects} have also been interpreted as properties spanning entire texts, e.g., a perspective or theme which may then color the discussion of topics \cite{paul2010two}. This intuition led to the development of the \emph{factorial LDA} family of topic models \cite{paul2012factorial,wallace2014large}; these model individual word probability as a product of multiple latent factors characterizing a text. This is similar to the Sparse Additive Generative (SAGE) model of text proposed by \newcite{SAGE}.%Eisenstein \cite{SAGE}. 
+There is also a large body of work that uses probabilistic generative models to recover latent structure in texts. Many of these models derive from Latent Dirichlet Allocation (LDA) \cite{blei2003latent}. Some variants of topic modeling have explicitly represented topics and aspects jointly for sentiment tasks \cite{brody2010unsupervised,sauper2010incorporating,sauper2011content,mukherjee2012aspect,sauper2013automatic,kim2013hierarchical}. A bit more generally, \emph{aspects} have also been interpreted as properties spanning entire texts, e.g., a perspective or theme which may then color the discussion of topics \cite{paul2010two}. This intuition led to the development of the \emph{factorial LDA} family of topic models \cite{paul2012factorial,wallace2014large}; these model individual word probability as a product of multiple latent factors characterizing a text. This is similar to the Sparse Additive Generative (SAGE) model of text proposed by \newcite{SAGE}.%Eisenstein \cite{SAGE}. 
 
 % bcw: not sure we need this stuff, since focus not on auto-encoders here
 %Several neural approaches to document modeling have recently been proposed, including the Neural Variational Document Model (NVDM) \cite{miao2016neural}, autoencoding LDA, and extensions thereof \cite{srivastava2017autoencoding}. The above models all learn a representation $z \in R^K$ of a document in which each component $z_k$ is associated with a vector $\beta_k$ of log-frequencies (NVDM) or probabilities (autoencoding LDA) that encodes a topic. This representation is entangled in the sense that we would generally not expect to be able to identify subsets of topics pertaining to specific aspects.
@@ -726,8 +733,8 @@ And then there is a large body of work that uses probabilistic generative models
 \vspace{-.25em}
 \section{Conclusions}
 \vspace{-.5em}
-We have proposed an approach for inducing disentangled representations of text. To train such models we have relied on supervision codified in aspect-wise similarity judgments provided as document triplets. We evaluated this approach on three datasets, each with their own respective aspects. Our experimental results demonstrate that triplet-based similarity judgments can be used to induce aspect specific embeddings. We demonstrated that these are qualitatively interpretable and achieve superior performance on information retrieval tasks. 
 Going forward, disentangled representations may afford additional advantages in NLP, e.g., by facilitating transfer \cite{zhang2017aspect}, or supporting aspect-focused summarization models. 
+We have proposed an approach for inducing disentangled representations of text. To learn such representations we have relied on supervision codified in aspect-wise similarity judgments provided as document triplets. We evaluated this approach on three datasets, each with different aspects. Our experimental results demonstrate that this approach indeed induces aspect-specific embeddings that are qualitatively interpretable and achieve superior performance on information retrieval tasks. 
 
 \bibliography{emnlp2018}
 \bibliographystyle{acl_natbib_nourl}
