@@ -14,7 +14,7 @@
 
 \documentclass[11pt,a4paper]{article}
 \usepackage[hyperref]{emnlp2018}
-\hypersetup{draft}
+% \hypersetup{draft}
 \usepackage{times}
 \usepackage{latexsym}
 \usepackage{amsmath}
@@ -27,7 +27,7 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 
-%\aclfinalcopy % Uncomment this line for the final submission
+\aclfinalcopy % Uncomment this line for the final submission
 %\def\aclpaperid{***} %  Enter the acl Paper ID here
 
 %\setlength\titlebox{5cm}
@@ -39,21 +39,28 @@
 \newcommand\BibTeX{B{\sc ib}\TeX}
 \newcommand\confname{EMNLP 2018}
 \newcommand\conforg{SIGDAT}
+\renewcommand{\quote}{\list{}{\rightmargin=0pt\leftmargin=0pt\topsep=3pt}\item\relax}
 
 % bcw: or something
 % It actually sound really nice
 \title{Learning Disentangled Representations of Texts \\ with Application to Biomedical Abstracts}
 
-\author{First Author \\
-  Affiliation / Address line 1 \\
-  Affiliation / Address line 2 \\
-  Affiliation / Address line 3 \\
-  {\tt email@domain} \\\And
-  Second Author \\
-  Affiliation / Address line 1 \\
-  Affiliation / Address line 2 \\
-  Affiliation / Address line 3 \\
-  {\tt email@domain} \\}
+\author{Sarthak Jain \\
+  Northeastern University \\
+  {\tt \small jain.sar@husky.neu.edu} \\\And
+  Edward Banner \\
+  Northeastern University \\
+  {\tt \small ebanner@ccs.neu.edu} \\\And
+  Jan-Willem van de Meent \\
+  Northeastern University \\
+  {\tt \small j.vandemeent@northeastern.edu} \\\AND
+  Iain J. Marshall \\
+  King's College London \\
+  {\tt \small iain.marshall@kcl.ac.uk} \\\And
+  Byron C. Wallace \\
+  Northeastern University \\
+  {\tt \small b.wallace@northeastern.edu}
+  }
 
 \date{}
 
@@ -61,13 +68,13 @@
 \maketitle
 \begin{abstract}
 
-We propose a method for learning \emph{disentangled} representations of texts that code for distinct and complementary aspects, with the aim of affording efficient model transfer and interpretability. To induce disentangled embeddings, we propose an adversarial objective based on the (dis)similarity between triplets of documents w.r.t.~specific aspects. Our motivating application is embedding biomedical abstracts describing clinical trials in a manner that disentangles the \emph{populations}, \emph{interventions}, and \emph{outcomes} in a given trial. We show that our method learns representations that encode these clinically salient aspects, and that these can be effectively used to perform aspect-specific retrieval. We demonstrate that the approach generalizes beyond our motivating application in experiments on two multi-aspect review corpora. 
+We propose a method for learning \emph{disentangled} representations of texts that code for distinct and complementary aspects, with the aim of affording efficient model transfer and interpretability. To induce disentangled embeddings, we propose an adversarial objective based on the (dis)similarity between triplets of documents with respect to specific aspects. Our motivating application is embedding biomedical abstracts describing clinical trials in a manner that disentangles the \emph{populations}, \emph{interventions}, and \emph{outcomes} in a given trial. We show that our method learns representations that encode these clinically salient aspects, and that these can be effectively used to perform aspect-specific retrieval. We demonstrate that the approach generalizes beyond our motivating application in experiments on two multi-aspect review corpora. 
 \end{abstract}
 
 \section{Introduction}
-\vspace{-.5em}
+\vspace{-.25em}
 
-A classic problem that arises in (distributed) representation learning is that it is difficult to determine what information specific dimensions in an embedding encode. When training a classifier to distinguish between images of people and landscapes, we do not know \emph{a priori} whether the model is sensitive to differences in color, contrast, shapes or textures. Analogously, in the case of natural language, when we calculate similarities between document embeddings of user reviews, we cannot know if this similarity primarily reflects user sentiment, the product discussed or syntactic patterns. This lack of interpretability 
+A classic problem that arises in (distributed) representation learning is that it is difficult to determine what information individual dimensions in an embedding encode. When training a classifier to distinguish between images of people and landscapes, we do not know \emph{a priori} whether the model is sensitive to differences in color, contrast, shapes or textures. Analogously, in the case of natural language, when we calculate similarities between document embeddings of user reviews, we cannot know if this similarity primarily reflects user sentiment, the product discussed, or syntactic patterns. This lack of interpretability 
 %is a major limitation of neural representation learning for language. It 
 makes it difficult to assess whether a learned representations is likely to generalize to a new task or domain, hindering model transferability. Disentangled representations with known semantics could allow more efficient training in settings in which supervision is expensive to obtain (e.g., biomedical NLP).
 
@@ -75,7 +82,7 @@ makes it difficult to assess whether a learned representations is likely to gene
 Thus far in NLP, learned distributed representations have, with few exceptions \cite{ruder2016hierarchical,he-2017,zhang2017aspect}, been \emph{entangled}: they indiscriminately encode all aspects of texts. 
 Rather than representing text via a monolithic vector, we propose to estimate multiple embeddings that capture complementary aspects of texts, drawing inspiration from the ML in vision community \cite{whitney2016disentangled,veit2017conditional}.
 
-As a motivating example we consider documents that describe clinical trials. Such publications constitute the evidence drawn upon to support \emph{evidence-based medicine} (EBM), in which one formulates precise clinical questions with respect to the Populations, Interventions, Comparators and Outcomes (PICO elements) of interest \cite{sackett1996evidence}.\footnote{We collapse I and C because the distinction is arbitrary.} Ideally, learned representations of such articles would factorize into embeddings for the respective PICO elements. This would enable aspect-specific similarity measures, in turn facilitating retrieval of evidence concerning a given condition of interest (i.e., in a specific patient population), regardless of the interventions and outcomes considered. Better representations may reduce the amount of supervision data needed, which is expensive in this domain.
+As a motivating example we consider documents that describe clinical trials. Such publications constitute the evidence drawn upon to support \emph{evidence-based medicine} (EBM), in which one formulates precise clinical questions with respect to the Populations, Interventions, Comparators and Outcomes (PICO elements) of interest \cite{sackett1996evidence}.\footnote{We collapse I and C because the distinction is arbitrary.} Ideally, learned representations of such articles would factorize into embeddings for the respective PICO elements. This would enable aspect-specific similarity measures, in turn facilitating retrieval of evidence concerning a given condition of interest (i.e., in a specific patient population), regardless of the interventions and outcomes considered. Better representations may reduce the amount of supervision needed, which is expensive in this domain.
 
 Our work is one of the first efforts to induce disentangled representations of texts,\footnote{We review the few recent related works that do exist in Section \ref{section:related-work}.} which we believe may be broadly useful in NLP. Concretely, our contributions in this paper are as follows:
 
@@ -89,11 +96,11 @@ Our work is one of the first efforts to induce disentangled representations of t
 \vspace{-.65em}
 \section{Framework and Models}
 \vspace{-.5em}
-Recent approaches in computer vision have emphasized unsupervised learning of disentangled representations by incorporating information-theoretic regularizers into the objective \cite{chen2016infogan,higgins2017beta-vae}. While these approaches have the advantage of not requiring explicit annotations, they do require post-hoc manual assignment of meaningful interpretations to learned representations. We believe it is more natural to use weak supervision to induce meaningful aspect embeddings.
+Recent approaches in computer vision have emphasized unsupervised learning of disentangled representations by incorporating information-theoretic regularizers into the objective \cite{chen2016infogan,higgins2017beta-vae}. These approaches do not require explicit manual annotations, but consequently they require post-hoc manual assignment of meaningful interpretations to learned representations. We believe it is more natural to use weak supervision to induce meaningful aspect embeddings.
 
-\vspace{-.3em}
+\vspace{-.25em}
 \subsection{Learning from Aspect Triplets}
-\vspace{-.3em}
+%\vspace{-.3em}
 
 As a general strategy for learning disentangled representations, we propose exploiting aspect-specific document triplets $(s,d,o)_a$: this signals that $s$ and $d$ are \emph{more} similar than are $d$ and $o$, with respect to aspect $a$ \cite{karaletsos2015bayesian,veit2016conditional}, i.e., $\text{sim}_a (d, s) > \text{sim}_a (d, o)$, where sim$_a$ quantifies similarity w.r.t.~aspect $a$. 
 
@@ -106,7 +113,7 @@ As a general strategy for learning disentangled representations, we propose expl
 
 %sarthak_1 : Changing to shared encoder
 % bcw 2/19: shortened, was "with part of the encoders shared between aspects, for details regarding the encoder architecture used in this work, see"
-We associate with each aspect an encoder \emph{enc}$_a$ (encoders share low-level layer parameters; for architecture details, see Section \ref{section:encoder}). This is used to obtain text embeddings $(\mathbf{e}^a_s, \mathbf{e}^a_d, \mathbf{e}^a_o)$. To estimate the parameters of these encoders we adopt a simple objective that seeks to maximize the similarity between $(\mathbf{e}^a_d, \mathbf{e}^a_s)$ and minimize similarity between $(\mathbf{e}^a_d, \mathbf{e}^a_o)$, via the following maximum margin loss% for a given triplet
+We associate with each aspect an encoder \emph{enc}$_a$ (encoders share low-level layer parameters; see Section \ref{section:encoder} for architecture details). This is used to obtain text embeddings $(\mathbf{e}^a_s, \mathbf{e}^a_d, \mathbf{e}^a_o)$. To estimate the parameters of these encoders we adopt a simple objective that seeks to maximize the similarity between $(\mathbf{e}^a_d, \mathbf{e}^a_s)$ and minimize similarity between $(\mathbf{e}^a_d, \mathbf{e}^a_o)$, via the following maximum margin loss% for a given triplet
 %&\mathcal{L}(o, s, d; a) = 
 \vspace{-.2em}
 \begin{equation}
@@ -116,15 +123,6 @@ We associate with each aspect an encoder \emph{enc}$_a$ (encoders share low-leve
 \end{equation}
 %\vspace{-.5em}
 \noindent Where similarity between documents $i$ and $j$ with respect to a particular aspect $a$,  $\text{\it sim}_a(i, j)$, is simply the cosine similarity between the aspect embeddings $\mathbf{e}^a_i$ and $\mathbf{e}^a_j$. This allows for the same documents to be similar with respect to some aspects while dissimilar in terms of others.
-
-% bcw 2/19 : removed for space, for now. i think can safely assume people familiar w/cosine sim.
-\begin{comment}
-\begin{equation}
-\vspace{-.35em}
-\text{\it sim}_a(i, j) = \frac{\mathbf{e}^a_i \cdot \mathbf{e}^a_j}{|\mathbf{e}^a_i||\mathbf{e}^a_j|}.
-%\vspace{-.1em}
-\end{equation}
-\end{comment}
 
 % bcw: this was removed but i think worth saying, even if it seems obvious
 %\noindent This allows for the same documents to be similar with respect to some aspects while dissimilar in terms of others.
@@ -145,7 +143,7 @@ In general, we expect a compromise between these extremes, and propose using neg
 %sarthak_1 : TODO Shared Encoder
 \begin{figure}
 	\centering
-    \includegraphics[scale=.425]{figures/disentangle.pdf}
+    \includegraphics[width=\columnwidth]{figures/disentangle.pdf}
     \vspace{-1.5em}
     \caption{We propose associating aspects with encoders (low-level parameters are shared across aspects; this is not shown) and training these with triplets codifying aspect-wise relative similarities.}%For the specific aspect encoder architecture we use to instantiate this model in the present work, see Figure \ref{fig:encoder}.}
     \label{fig:the-idea}
@@ -234,7 +232,7 @@ H_l = f_e(X * K_l + {\mathbf b_l})
 
 \noindent where $X \in \mathbb{R}^{N \times k}$ is the input to layer $C_l$ (either a set of $n$-gram embeddings or $H_{l-1}$) and $k$ is the number of feature maps. Kernel $K_l \in \mathbb{R}^{F \times k \times k}$ and ${\mathbf b_l} \in \mathbb{R}^{k}$ are parameters to be estimated, where $F$ is the size of kernel window.\footnote{The input to $C_1$ is $E \in \mathbb{R}^{N \times m}$, thus $K_1 \in \mathbb{R}^{F \times m \times k}$.} An activation function $f_e$ is applied element-wise to the output of the convolution operations. We fix the size of $H_{l-1} \in \mathbb{R}^{N \times k}$ by zero-padding where necessary. Keeping the size of feature maps constant across layers allows us to introduce residual connections; the output of layer $l$ is summed with the outputs of preceding layers before being passed forward. 
 
- \begin{figure}
+\begin{figure}
 	\centering
     \includegraphics[width=\columnwidth]{figures/model.pdf}
      \vspace{-.75em}
@@ -318,7 +316,74 @@ we have obtained aspect-specific summaries from the \emph{Cochrane Database of S
 % bcw 5/2 -- I have tried (once again!) to make this is a bit easier to follow, but still quite dense. However, I think (hope) that the first paragraph below helps a bit
 Reviews implicitly specify PICO frames, and thus two studies in any given review may be viewed as equivalent with respect to their PICO aspects. We use this observation to derive document triplets. Recall that triplets for a given aspect include two comparatively similar texts ($s$, $d$) and one relatively dissimilar ($o$). Suppose the aspect of interest is the trial population. Here we match a given abstract ($d$) with its matched population summary from the CDSR ($s$); this encourages the encoder to yield similar embeddings for the abstract and the population description. The dissimilar $o$ is constructed to distinguish the given abstract from (1) other aspect encodings (of interventions, outcomes), and, (2) abstracts for trials with different populations.
 
-Concretely, to construct a triplet  $(s, d, o)$ for the PICO data, we draw two reviews $r_1$ and $r_2$ from the CDSR at random, and sample two studies from the first ($s_1, s_1'$) and one from the second ($s_2$). Intuitively, $s_2$ will (very likely) comprise entirely different PICO elements than ($s_1, s_1'$), by virtue of belonging to a different review. To formalize the preceding description, our triplet is then: $(s = [s_1'^P], d = [s_1^{\text{abstract}}], o = [s_2^P|s_1'^I|s_1'^O])$, where $s_1^{\text{abstract}}$ is the abstract for study $s_1$, and aspect summaries for studies are denoted by superscripts. We include a concrete example of triplet construction in the Appendix, Section D.
+Concretely, to construct a triplet  $(s, d, o)$ for the PICO data, we draw two reviews $R_1$ and $R_2$ from the CDSR at random, and sample two studies from the first ($s_1, s_1'$) and one from the second ($s_2$). Intuitively, $s_2$ will (very likely) comprise entirely different PICO elements than ($s_1, s_1'$), by virtue of belonging to a different review. To formalize the preceding description, our triplet is then: $(s = [s_1'^P], d = [s_1^{\text{abstract}}], o = [s_2^P|s_1'^I|s_1'^O])$, where $s_1^{\text{abstract}}$ is the abstract for study $s_1$, and aspect summaries for studies are denoted by superscripts. We include a concrete example of triplet construction in the Appendix, Section D.
+
+\begin{comment}
+\subsubsection{Example of PICO Triplet generation}
+As an illustrative example, we walk through construction of a single triplet for the PICO domain in detail. Recall that we first randomly draw two reviews, $R_1$ and $R_2$. In this case, $R_1$ consists of studies involving nocturnal enuresis and $R_2$ concerns asthma. From $R_1$ we randomly select two studies $S, S'$. 
+
+(1) Here we sample abstract $A$ for study $S$, shown below:
+
+{\footnotesize \begin{quote}
+In recent years the treatment of primary nocturnal enuresis (PNE) with desmopressin (DDAVP) has been promising. The route of administration until now had been intranasal, but because the tablets were introduced for the treatment of diabetes insipidus they have also become available for the treatment of PNE. \ldots The effect of oral desmopressin (1-deamino-8-D-arginine-vasopressin) (DDAVP tablets, Minirin) was investigated in 25 adolescents (ages 11 to 21 years) with severe monosymptomatic nocturnal enuresis. \ldots The final part was an open long-term study consisting of two 12-week treatment periods. The efficacy of the drug was measured in reductions of the number of wet nights per week. \ldots the number of wet nights decreased from a mean of 4.9 to 2.8. During the double-blind period, a significant reduction of wet nights was observed (1.8 vs 4.1 for placebo). \ldots After cessation of the drug, 44\% of the patients had a significant decrease in the number of wet nights. Oral desmopressin has a clinically significant effect on patients with PNE, and therapy is safe when administered as long-term treatment. \end{quote}}
+
+For study $S$, the summaries in the CDSR are: 
+
+\noindent \textbf{P summary $(s_P)$}
+
+{\footnotesize \begin{quote} Number of children: 10. Inclusion criteria: adolescents (puberty stage at least 2, at least 12 years).  Exclusion criteria: treatment in previous 2 weeks, daytime wetting, UTI. Baseline wetting 4.7 (SD 1.1) wet nights/week Department of Paediatric Surgery, Sweden\end{quote}}
+
+\noindent \textbf{I Summary $(s_I)$}
+{\footnotesize \begin{quote} A : desmopressin orally (dosage based on titration period) B : placebo Duration 4 weeks each
+\end{quote}}
+
+\noindent \textbf{O summary $(s_O)$}
+{\footnotesize \begin{quote} Wet nights during trial (number, mean, SD): A: 10, 1.8 (SD 1.4); B: 10, 4.1 (1.5) Side effects: headache (5); abdominal pain (6); nausea and vertigo (1) All resolved while treatment continued \end{quote}}
+
+\vspace{-1em}
+\par\noindent\rule{\columnwidth}{0.4pt}
+(2) From study $S'$, the summaries in the CDSR are reproduced as follows. 
+
+\noindent \textbf{P Summary $(s'_P)$}
+
+{\footnotesize \begin{quote} Number of children: 135 Dropouts: 23 excluded for non-compliance, and 39 lost to follow up including 12 failed with alarms. Inclusion criteria: monosymptomatic nocturnal enuresis, age $>5$ years. \ldots\end{quote}}
+
+\noindent \textbf{I Summary $(s'_I)$} 
+{\footnotesize \begin{quote} A (62): desmopressin 20 g intranasally increasing to 40 g if response partial B (73): alarm (pad-and-bell) Duration of treatment 3 months. If failed at that time, changed to alternative arm\end{quote}}
+
+\noindent \textbf{O summary $(s'_O)$}
+{\footnotesize \begin{quote} DRY nights at 3 months: A 85\%; B: 90\% Number not achieving 14 dry nights: A 12/39; B: 6/37 Side effects: not mentioned \end{quote}}
+
+% \vspace{1em}
+\vspace{-1em}
+\par\noindent\rule{\columnwidth}{0.4pt}
+(3) From review $R_2$, we sample one study $S''$. Matched summaries in the CDSR are as follows. 
+
+\noindent \textbf{P Summary $(s''_P)$}
+
+{\footnotesize \begin{quote} n = 8, Mean age = 52, Inclusion: intrinsic asthma, constant reversibility $>$ 20\% None had an acute exacerbation at time of study Exclusion: none listed \end{quote}}
+
+\noindent \textbf{I summary $(s''_I)$}
+
+{\footnotesize \begin{quote} \#1: Atenolol 100 mg Metoprolol 100 mg Placebo \#2: Terbutaline (IV then inhaled) after Tx or placebo \end{quote}}
+
+\noindent \textbf{O summary $(s''_O)$}
+
+{\footnotesize \begin{quote} FEV1 Symptoms \end{quote}}
+
+% \vspace{1em}
+\vspace{-1em}
+\par\noindent\rule{\columnwidth}{0.4pt}
+(4) We note how the summaries for $S$ and $S'$ are similar to each other (but not identical) since they belong in the same review whereas they are quite different from summaries for $S''$ which belongs in a different review. Now we construct the triplet $(s, d, o)_P$ as follows:
+
+% \vspace{1em}
+\noindent {\boldmath $s = s'_P$}:
+
+{\footnotesize \begin{quote} Number of children: 135 Dropouts: 23 excluded for non-compliance, and 39 lost to follow up including 12 failed with alarms Inclusion criteria: monosymptomatic nocturnal enuresis, age $>5$ years Exclusion criteria: previous treatment with DDAVP or alarm, urological pathology, diurnal enuresis, UTI Age, mean years: 11.2  Baseline wetting: A 21\% dry nights, B 14\% dry nights\end{quote}}
+
+\noindent So we have {\boldmath $d$} \textbf{: A} and {\boldmath $o = [s''_P|s'_I|s'_O]$}: 
+
+{\footnotesize \begin{quote} n = 8 Mean age = 52 Inclusion: intrinsic asthma, constant reversibility $>$ 20\% None had an acute exacerbation at time of study Exclusion: none listed $|$ A (62): desmopressin 20 g intranasally increasing to 40 g if response partial B (73): alarm (pad-and-bell) Duration of treatment 3 months. If failed at that time, changed to alternative arm $|$ DRY nights at 3 months: A 85\%; B: 90\% Number not achieving 14 dry nights: A 12/39; B: 6/37 Side effects: not mentioned \end{quote}}
 
 
 %Formally, to construct a triplet for aspect $a$, we randomly select two reviews and sample one study 
@@ -344,7 +409,7 @@ Concretely, to construct a triplet  $(s, d, o)$ for the PICO data, we draw two r
 
 %Formally, we assume a given document $d$ comes attached with a set of $r$ aspect summaries $S^d = \{s^d_1, ..., s^d_r\}$. For each aspect $j$, 
 
-\begin{comment}
+%\begin{comment}
 To realize this we adopt a distantly supervised training paradigm in which we assume access to aspect specific free-text summaries for a set of corresponding documents. Here we obtained such data from the \emph{Cochrane Database of Systematic reviews (CDSR)}. Cochrane is an international organization that promotes and assists with the creation and curation of \emph{systematic reviews}, which underpin EBM. Briefly, systematic reviews seek to answer precise clinical questions; that is, questions that specify a particular PICO frame (Table \ref{table:pico-framework}). Such reviews therefore provide a natural source of training and testing data for our proposed approach.
 
 The CDSR includes the data generated for thousands of previously conducted systematic reviews, which each in turn comprise multiple studies. Part of the review process entails writing free-text summaries describing the PICO elements studied in each constituent trial. These summaries are stored in the CDSR, and we can match them to corresponding abstracts. Because these summaries were written by different people (working with different teams), they vary greatly in many respects, including length, structure and grammar. 
@@ -361,9 +426,15 @@ Given an abstract $a$ and summary of the population aspect (we outline the learn
 % Thus, $D_s$ has same value for aspect j and some negative value for all other aspects. Similarly, we construct a negative pseudo-document $D_d$ by concatenating a negative summary for aspect j and a same summaries for all other aspect as $D_i$. The triplet $(D_i, D_s, D_d; j)$ then form a training point for aspect $j$ used as above. 
 
 %\vspace{-.25em}
+% \end{comment}
+
 \subsection{Learning Directly from Aspect-Wise Similarity Judgments}
 %\vspace{-.25em}
-The preceding setup assumes a somewhat unique case in which we have access to aspect-specific summaries written for texts. As a more general setting, we also consider learning directly from triplet-wise supervision concerning relative similarity with respect to particular aspects \cite{amid2015multiview,veit2017conditional,wilber2014cost}. The assumption is that such judgments can be solicited directly from annotators, and thus the approach may be applied to arbitrary domains, so long as meaningful aspects can be defined implicitly via pairwise similarities regarding them. In practice, we do not currently have corpora with such judgments in NLP, so we constructed two datasets using aspect-specific sentiment ratings. % bcw: TODO elaborate ... 
+The preceding setup assumes a somewhat unique case in which we have access to aspect-specific summaries written for texts. As a more general setting, we also consider learning directly from triplet-wise supervision concerning relative similarity with respect to particular aspects \cite{amid2015multiview,veit2017conditional,wilber2014cost}. The assumption is that such judgments can be solicited directly from annotators, and thus the approach may be applied to arbitrary domains, so long as meaningful aspects can be defined implicitly via pairwise similarities regarding them. 
+
+We do not currently have corpora with such judgments in NLP, so we constructed two datasets using aspect-specific sentiment ratings. Note that this highlights the flexibility of exploiting aspect-wise triplet supervision as a means of learning disentangled representations: existing annotations can often be repurposed into such triplets. 
+
+% bcw: TODO elaborate ... 
 
 %% bcw: something about how this is what vision people do. also, should cite literature about how people can totally make these kinds of judgments
 
@@ -376,40 +447,69 @@ The preceding setup assumes a somewhat unique case in which we have access to as
 \label{section:experiments}
 
 % bcw 2/19 -- i think we might want to move the table up a page.
+% \begin{table*}%[!htb]
+% \small
+% \centering
+% \begin{tabular}{l r r r r r|r r || r r r r}
+% \hline
+% Method &  TF-IDF &  Doc2Vec&  LDA &  NVDM &  ABAE&  RR-TF &  DSSM & $\mathbf{P}$ & $\mathbf{I}$ & $\mathbf{O}$ & $\mathbf{[P|I|O]}$ \\ 
+% \hline
+% % ACEInhib.  & 0.81 & 0.74 & 0.72 & 0.85 & 0.81 & 0.67 & 0.85 & 0.83 & 0.88 & 0.84 &  \textbf{0.92} \\
+% % ADHD  & 0.90 & 0.82 & 0.83 &  \textbf{0.93}  & 0.77 & 0.85 & 0.83 & 0.86 & 0.75 & 0.91 &  0.89 \\ 
+% % Antihist. & 0.81 & 0.73 & 0.67 & 0.79 & 0.84 & 0.72 & \textbf{0.91} & 0.88 & 0.84 & 0.89 &  \textbf{0.91} \\  
+% % Antipsych.  & 0.75 & 0.85 & 0.88 & 0.89 & 0.81 & 0.63 & 0.96 & 0.91 & 0.93 &  \textbf{0.97} &  \textbf{0.97} \\ 
+% % BetaBlockers  & 0.67 & 0.65 & 0.61 & 0.76 & 0.70 & 0.56 & 0.68 & 0.71 & 0.75 & 0.77 &  \textbf{0.81} \\ 
+% % CCBlockers  & 0.67 & 0.60 & 0.67 & 0.70 & 0.69 & 0.58 & 0.76 & 0.73 & 0.69 & 0.74 &  \textbf{0.77} \\ 
+% % Estrogens  & 0.87 & 0.85 & 0.60 & 0.94 & 0.85 & 0.82 & 0.96 &  \textbf{1.00} & 0.98 & 0.83 &  \textbf{1.00} \\ 
+% % NSAIDS  & 0.85 & 0.77 & 0.73 & 0.9 & 0.77 & 0.74 & 0.89 & 0.94 &  \textbf{0.95} & 0.8 &  \textbf{0.95} \\ 
+% % Opiods  & 0.81 & 0.75 & 0.80 & 0.83 & 0.77 & 0.76 & 0.86 & 0.80 & 0.83 &  \textbf{0.92} &  \textbf{0.92} \\ 
+% % OHG  & 0.79 & 0.80 & 0.70 & 0.89 & 0.90 & 0.72 & 0.90 & 0.90 & 0.95 & 0.95 &  \textbf{0.96} \\
+% % PPI  & 0.81 & 0.79 & 0.74 & 0.85 & 0.82 & 0.68 & 0.94 & 0.94 & 0.87 & 0.87 &  \textbf{0.95} \\  
+% % MuscleRelax.  & 0.60 & 0.67 & 0.74 & 0.75 & 0.61 & 0.57 & 0.77 & 0.68 & 0.62 &  \textbf{0.78}&  0.75 \\ 
+% % Statins  & 0.79 & 0.76 & 0.66 & 0.87 & 0.77 & 0.68 & 0.87 & 0.82 &  \textbf{0.94} & 0.87 &  \textbf{0.94} \\  
+% % Triptans  & 0.92 & 0.82 & 0.83 & 0.92 & 0.75 & 0.81 & \textbf{0.97}& 0.93 & 0.79 &  \textbf{0.97}  &  \textbf{0.97} \\  
+% AUC & 0.79 & 	0.76 & 	0.73 & 	0.85 & 	0.78 & 	0.70 & 	0.87 & 	0.85 & 	0.84 & 	0.87 & 	\textbf{0.91}
+% \end{tabular}
+% \vspace{-.65em}
+% \caption{Mean AUCs achieved using different representations over the \newcite{cohen2006reducing} corpus. Models to the right of the $\vert$ are supervised; those to the right of $\vert \vert$ use the proposed disentangled embeddings. } 
+% %\vspace{-1em}
+% \label{table:cohenauc}
+% \end{table*}
+
 \begin{table*}%[!htb]
 \small
+\setlength{\tabcolsep}{3pt}
 \centering
 \begin{tabular}{l r r r r r|r r || r r r r}
+Study &  TF-IDF &  Doc2Vec&  LDA &  NVDM &  ABAE&  RR-TF &  DSSM & $\mathbf{P}$ & $\mathbf{I}$ & $\mathbf{O}$ & $\mathbf{[P|I|O]}$ \\ 
 \hline
-Method &  TF-IDF &  Doc2Vec&  LDA &  NVDM &  ABAE&  RR-TF &  DSSM & $\mathbf{P}$ & $\mathbf{I}$ & $\mathbf{O}$ & $\mathbf{[P|I|O]}$ \\ 
-\hline
-% ACEInhib.  & 0.81 & 0.74 & 0.72 & 0.85 & 0.81 & 0.67 & 0.85 & 0.83 & 0.88 & 0.84 &  \textbf{0.92} \\
-% ADHD  & 0.90 & 0.82 & 0.83 &  \textbf{0.93}  & 0.77 & 0.85 & 0.83 & 0.86 & 0.75 & 0.91 &  0.89 \\ 
-% Antihist. & 0.81 & 0.73 & 0.67 & 0.79 & 0.84 & 0.72 & \textbf{0.91} & 0.88 & 0.84 & 0.89 &  \textbf{0.91} \\  
-% Antipsych.  & 0.75 & 0.85 & 0.88 & 0.89 & 0.81 & 0.63 & 0.96 & 0.91 & 0.93 &  \textbf{0.97} &  \textbf{0.97} \\ 
-% BetaBlockers  & 0.67 & 0.65 & 0.61 & 0.76 & 0.70 & 0.56 & 0.68 & 0.71 & 0.75 & 0.77 &  \textbf{0.81} \\ 
-% CCBlockers  & 0.67 & 0.60 & 0.67 & 0.70 & 0.69 & 0.58 & 0.76 & 0.73 & 0.69 & 0.74 &  \textbf{0.77} \\ 
-% Estrogens  & 0.87 & 0.85 & 0.60 & 0.94 & 0.85 & 0.82 & 0.96 &  \textbf{1.00} & 0.98 & 0.83 &  \textbf{1.00} \\ 
-% NSAIDS  & 0.85 & 0.77 & 0.73 & 0.9 & 0.77 & 0.74 & 0.89 & 0.94 &  \textbf{0.95} & 0.8 &  \textbf{0.95} \\ 
-% Opiods  & 0.81 & 0.75 & 0.80 & 0.83 & 0.77 & 0.76 & 0.86 & 0.80 & 0.83 &  \textbf{0.92} &  \textbf{0.92} \\ 
-% OHG  & 0.79 & 0.80 & 0.70 & 0.89 & 0.90 & 0.72 & 0.90 & 0.90 & 0.95 & 0.95 &  \textbf{0.96} \\
-% PPI  & 0.81 & 0.79 & 0.74 & 0.85 & 0.82 & 0.68 & 0.94 & 0.94 & 0.87 & 0.87 &  \textbf{0.95} \\  
-% MuscleRelax.  & 0.60 & 0.67 & 0.74 & 0.75 & 0.61 & 0.57 & 0.77 & 0.68 & 0.62 &  \textbf{0.78}&  0.75 \\ 
-% Statins  & 0.79 & 0.76 & 0.66 & 0.87 & 0.77 & 0.68 & 0.87 & 0.82 &  \textbf{0.94} & 0.87 &  \textbf{0.94} \\  
-% Triptans  & 0.92 & 0.82 & 0.83 & 0.92 & 0.75 & 0.81 & \textbf{0.97}& 0.93 & 0.79 &  \textbf{0.97}  &  \textbf{0.97} \\  
-AUC & 0.79 & 	0.76 & 	0.73 & 	0.85 & 	0.78 & 	0.70 & 	0.87 & 	0.85 & 	0.84 & 	0.87 & 	0.91
+ACEInhib.  & 0.81 & 0.74 & 0.72 & 0.85 & 0.81 & 0.67 & 0.85 & 0.83 & 0.88 & 0.84 &  \textbf{0.92} \\
+ADHD  & 0.90 & 0.82 & 0.83 &  \textbf{0.93}  & 0.77 & 0.85 & 0.83 & 0.86 & 0.75 & 0.91 &  0.89 \\ 
+Antihist. & 0.81 & 0.73 & 0.67 & 0.79 & 0.84 & 0.72 & \textbf{0.91} & 0.88 & 0.84 & 0.89 &  \textbf{0.91} \\  
+Antipsych.  & 0.75 & 0.85 & 0.88 & 0.89 & 0.81 & 0.63 & 0.96 & 0.91 & 0.93 &  \textbf{0.97} &  \textbf{0.97} \\ 
+BetaBlockers  & 0.67 & 0.65 & 0.61 & 0.76 & 0.70 & 0.56 & 0.68 & 0.71 & 0.75 & 0.77 &  \textbf{0.81} \\ 
+CCBlockers  & 0.67 & 0.60 & 0.67 & 0.70 & 0.69 & 0.58 & 0.76 & 0.73 & 0.69 & 0.74 &  \textbf{0.77} \\ 
+Estrogens  & 0.87 & 0.85 & 0.60 & 0.94 & 0.85 & 0.82 & 0.96 &  \textbf{1.00} & 0.98 & 0.83 &  \textbf{1.00} \\ 
+NSAIDS  & 0.85 & 0.77 & 0.73 & 0.9 & 0.77 & 0.74 & 0.89 & 0.94 &  \textbf{0.95} & 0.8 &  \textbf{0.95} \\ 
+Opioids  & 0.81 & 0.75 & 0.80 & 0.83 & 0.77 & 0.76 & 0.86 & 0.80 & 0.83 &  \textbf{0.92} &  \textbf{0.92} \\ 
+OHG  & 0.79 & 0.80 & 0.70 & 0.89 & 0.90 & 0.72 & 0.90 & 0.90 & 0.95 & 0.95 &  \textbf{0.96} \\
+PPI  & 0.81 & 0.79 & 0.74 & 0.85 & 0.82 & 0.68 & 0.94 & 0.94 & 0.87 & 0.87 &  \textbf{0.95} \\  
+MuscleRelax.  & 0.60 & 0.67 & 0.74 & 0.75 & 0.61 & 0.57 & 0.77 & 0.68 & 0.62 &  \textbf{0.78}&  0.75 \\ 
+Statins  & 0.79 & 0.76 & 0.66 & 0.87 & 0.77 & 0.68 & 0.87 & 0.82 &  \textbf{0.94} & 0.87 &  \textbf{0.94} \\  
+Triptans  & 0.92 & 0.82 & 0.83 & 0.92 & 0.75 & 0.81 & \textbf{0.97}& 0.93 & 0.79 &  \textbf{0.97}  &  \textbf{0.97} \\  \hline
+Mean & 0.79	& 0.76& 	0.73& 	0.85& 	0.78& 	0.70& 	0.87& 	0.85& 	0.84& 	0.87& 	\textbf{0.91}
 \end{tabular}
 \vspace{-.65em}
-\caption{Mean AUCs achieved using different representations over the \newcite{cohen2006reducing} corpus. Models to the right of the $\vert$ are supervised; those to the right of $\vert \vert$ use the proposed disentangled embeddings. } 
+\caption{AUCs achieved using different representations on the Cohen et al. corpus. Models to the right of the $\vert$ are supervised; those to the right of $\vert \vert$ constitute the proposed disentangled embeddings. } 
 %\vspace{-1em}
 \label{table:cohenauc}
 \end{table*}
 
 
-We present a series of experiments on three corpora to assess the degree to which the learned representations are disentangled, and to evaluate the utility of the embeddings in simple downstream retrieval tasks. We are particularly interested in the ability to identify documents similar w.r.t.~a target aspect. All parameter settings for baselines are reported in the Appendix (along with additional experimental results), and all code will be made available upon publication.
+We present a series of experiments on three corpora to assess the degree to which the learned representations are disentangled, and to evaluate the utility of these embeddings in simple downstream retrieval tasks. We are particularly interested in the ability to identify documents similar w.r.t.~a target aspect. All parameter settings for baselines are reported in the Appendix (along with additional experimental results), and all code will be made available upon publication.
 %In this section, we present the experimental results on 3 datasets to validate our proposed approach.
 
-\vspace{-.5em}
+%\vspace{-.5em}
 \subsection{PICO (EBM) Domain}
 \label{section:PICO}
 \vspace{-.25em}
@@ -428,13 +528,13 @@ The PICO dataset comprises 41K abstracts of articles describing clinical trials 
 \subsubsection{Quantitative Evaluation}
 \vspace{-.25em}
 
-\noindent \textbf{Baselines}. We compare the proposed {\bf P}, {\bf I} and {\bf O} embeddings and their concatenation $\mathbf{[P|I|O]}$ to the following. {\bf TF-IDF}: standard TF-IDF representation of abstracts. {\bf RR-TF}: concatenated TF-IDF vectors of sentences predicted to describe the respective PICO elements, i.e., sentence predictions made using the pre-trained model from \cite{wallace2016extracting} --- this model was trained using the CDSR. {\bf doc2vec}: standard (entangled) distributed representations of abstracts \cite{le2014distributed}. {\bf LDA}: Latent Dirichlet Allocation. {\bf NVDM}: A generative model of text where the representation is a vector of log-frequencies that encode a topic \cite{miao2016neural}. {\bf ABAE}: An autoencoder model that discovers latent aspects in sentences \cite{he-2017}. We obtain document embeddings by summing over constituent sentence embeddings. {\bf DSSM}: A CNN based encoder trained with triplet loss over abstracts \cite{shen2014latent}.
+\noindent \textbf{Baselines}. We compare the proposed {\bf P}, {\bf I} and {\bf O} embeddings and their concatenation $\mathbf{[P|I|O]}$ to the following. {\bf TF-IDF}: standard TF-IDF representation of abstracts. {\bf RR-TF}: concatenated TF-IDF vectors of sentences predicted to describe the respective PICO elements, i.e., sentence predictions made using the pre-trained model from \cite{wallace2016extracting} --- this model was trained using distant supervision derived from the CDSR. {\bf doc2vec}: standard (entangled) distributed representations of abstracts \cite{le2014distributed}. {\bf LDA}: Latent Dirichlet Allocation. {\bf NVDM}: A generative model of text where the representation is a vector of log-frequencies that encode a topic \cite{miao2016neural}. {\bf ABAE}: An autoencoder model that discovers latent aspects in sentences \cite{he-2017}. We obtain document embeddings by summing over constituent sentence embeddings. {\bf DSSM}: A CNN based encoder trained with triplet loss over abstracts \cite{shen2014latent}.
 
 \vspace{.15em}
-\noindent \textbf{Hyperparameters and Settings}. We use three layers for our CNN-based encoder (with 200 filters in each layer; window size of 5) and the PReLU \cite{he2015delving} activation function as $f_e$. We used 200d word embeddings, initialized via pretraining over a corpus of PubMed abstracts \cite{moen2013distributional}. We used the Adam optimization function with default parameters \cite{kingma2014adam}. We imposed $\ell_2$ regularization over all parameters, the value of which was selected from the range ($1e$-$2$, $1e$-$6$) as $1e$-$5$. The $\ell_1$ regularization parameter for gates was chosen from the range ($1e$-$2$, $1e$-$8$) as $1e$-$6$. All model hyperparameters for our models and baselines were chosen via line search over a 10\% validation set.
+\noindent \textbf{Hyperparameters and Settings}. We use three layers for our CNN-based encoder (with 200 filters in each layer; window size of 5) and the PReLU activation function \cite{he2015delving} as $f_e$. We use 200d word embeddings, initialized via pretraining over a corpus of PubMed abstracts \cite{moen2013distributional}. We used the Adam optimization function with default parameters \cite{kingma2014adam}. We imposed $\ell_2$ regularization over all parameters, the value of which was selected from the range ($1e$-$2$, $1e$-$6$) as $1e$-$5$. The $\ell_1$ regularization parameter for gates was chosen from the range ($1e$-$2$, $1e$-$8$) as $1e$-$6$. All model hyperparameters for our models and baselines were chosen via line search over a 10\% validation set.
 
 \vspace{.15em}
-\noindent \textbf{Metric}. For this evaluation, we used a held out set of 15 systematic reviews (comprising 2,223 studies) compiled by \newcite{cohen2006reducing}. The idea is that good representations should map abstracts in the same review (which describe studies with the same PICO frame) near to one another. To compute AUCs over reviews, we first calculate all pairwise study similarities (i.e., over all studies in the Cohen corpus). We can then construct an ROC for a given abstract $a$ from a particular review to calculate its AUC: this measures the probability that a study drawn from the same review will be nearer to $a$ than a study from a different review. A summary AUC for a review is taken as the mean of the study AUCs in that review.
+\noindent \textbf{Metric}. For this evaluation, we used a held out set of 15 systematic reviews (comprising 2,223 studies) compiled by \newcite{cohen2006reducing}. The idea is that good representations should map abstracts in the same review (which describe studies with the same PICO frame) relatively near to one another. To compute AUCs over reviews, we first calculate all pairwise study similarities (i.e., over all studies in the Cohen corpus). We can then construct an ROC for a given abstract $a$ from a particular review to calculate its AUC: this measures the probability that a study drawn from the same review will be nearer to $a$ than a study from a different review. A summary AUC for a review is taken as the mean of the study AUCs in that review.
 %a summary AUC for a given review by averaging the area under the ROC curves for each abstract $a$ that it contains 
 
 
@@ -444,26 +544,113 @@ The PICO dataset comprises 41K abstracts of articles describing clinical trials 
 %$A$ such that $A_{ij} = {\textit sim}(a_i, a_j)$ for abstracts $a_i$ and $a_j$ ($A_{ii}$ is set to $-\infty$). Given $A$ and a systematic review $\mathcal{R}^{(i)}$, we compute an ROC curve for each $a \in \mathcal{R}^{(i)}$ and then average these within reviews to derive a summary ROC curve for each review. 
 
 
-\vspace{.15em}
-\noindent \textbf{Results}. Table \ref{table:cohenauc} reports the mean summary AUC over the set of reviews in the \newcite{cohen2006reducing} corpus. We report detailed results (on each individual review) in the Appendix. In brief: The proposed PICO embeddings obtain an equivalent or higher AUC than baseline strategies on 12/14 reviews, and strictly higher AUCs in 11/14. It is unsurprising that we outperform unsupervised approaches, but we also best RR-TF, which was trained with the same CDSR corpus \cite{wallace2016extracting}, and DSSM \cite{shen2014latent}, which exploits the same triplet loss as our model. Indeed, we outperform the latter by a mean performance gain of 4 points AUC. 
 
-We now turn to the more important questions: are the learned representations actually disentangled, and do they encode the target aspects? 
+\vspace{.15em}
+\noindent \textbf{Results}. Table \ref{table:cohenauc} reports the mean AUCs over individual reviews in the \newcite{cohen2006reducing} corpus, and grand means over these (bottom row). %We report detailed results (on each individual review) in the Appendix. 
+In brief: The proposed PICO embeddings (concatenated) obtain an equivalent or higher AUC than baseline strategies on 12/14 reviews, and strictly higher AUCs in 11/14. It is unsurprising that we outperform unsupervised approaches, but we also best RR-TF, which was trained with the same CDSR corpus \cite{wallace2016extracting}, and DSSM \cite{shen2014latent}, which exploits the same triplet loss as our model. We outperform the latter by an average performance gain of 4 points AUC (significant at 95\% level using independent 2-sample t-test).
+
+\begin{table}
+\small
+    \centering
+    \begin{tabularx}{\columnwidth}{X}
+         {\setlength{\fboxsep}{0pt}\colorbox{red!16!white}{\strut in}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!22!white}{\strut a}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!24!white}{\strut clinical}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!13!white}{\strut trial}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!12!white}{\strut mainly}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!18!white}{\strut involving}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!23!white}{\strut patients}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!49!white}{\strut over}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!80!white}{\strut qqq}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!100!white}{\strut with}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!77!white}{\strut coronary}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!74!white}{\strut heart}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!82!white}{\strut disease}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!82!white}{\strut ,}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!47!white}{\strut ramipril}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!9!white}{\strut reduced}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut mortality}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut while}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut vitamin}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut e}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut had}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!10!white}{\strut no}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!10!white}{\strut preventive}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!9!white}{\strut effect}}
+{\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut .}} \\[2pt] \hline
+{\setlength{\fboxsep}{0pt}\colorbox{green!11!white}{\strut in}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!15!white}{\strut a}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!16!white}{\strut clinical}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!4!white}{\strut trial}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!1!white}{\strut mainly}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!1!white}{\strut involving}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut patients}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!5!white}{\strut over}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!8!white}{\strut qqq}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!6!white}{\strut with}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut coronary}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!1!white}{\strut heart}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!46!white}{\strut disease}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!74!white}{\strut ,}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!100!white}{\strut ramipril}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!54!white}{\strut reduced}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!26!white}{\strut mortality}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut while}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!36!white}{\strut vitamin}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!68!white}{\strut e}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!85!white}{\strut had}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!65!white}{\strut no}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut preventive}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!44!white}{\strut effect}}
+{\setlength{\fboxsep}{0pt}\colorbox{green!27!white}{\strut .}} \\[2pt] \hline
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!6!white}{\strut in}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!10!white}{\strut a}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!11!white}{\strut clinical}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!4!white}{\strut trial}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut mainly}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut involving}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut patients}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!5!white}{\strut over}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!7!white}{\strut qqq}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!11!white}{\strut with}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!22!white}{\strut coronary}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!41!white}{\strut heart}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!40!white}{\strut disease}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!49!white}{\strut ,}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!57!white}{\strut ramipril}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut reduced}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!100!white}{\strut mortality}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!92!white}{\strut while}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!54!white}{\strut vitamin}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!29!white}{\strut e}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!7!white}{\strut had}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!1!white}{\strut no}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!13!white}{\strut preventive}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!22!white}{\strut effect}}
+{\setlength{\fboxsep}{0pt}\colorbox{cyan!21!white}{\strut .}}
+    \end{tabularx}
+    %\vspace{-.5em}
+    \caption{Gate activations for each aspect in a PICO abstract. Note that because gates are calculated at the final convolution layer, activations are not in exact 1-1 correspondence with words.}
+    \label{tab:gate-pico}
+    % \vspace{-.5em}
+\end{table}
+
+We now turn to the more important questions: are the learned representations actually disentangled, and do they encode the target aspects? Table \ref{tab:gate-pico} shows aspect-wise gate activations for PICO elements over a single abstract; this qualitatively suggests disentanglement, but we next investigate this in greater detail.
 
 %Further, concatenating all aspect embeddings usually results in better performance than using any one independently, suggesting that they indeed capture complementary information. 
 
-\vspace{-.35em}
+\vspace{-.1em}
 \subsubsection{Qualitative Evaluation} 
-\vspace{-.25em}
-To assess the degree to which our embeddings are disentangled -- i.e., capture complementary information relevant to the targeted aspects -- we performed two qualitative studies.
+\vspace{-.1em}
+To assess the degree to which our PICO embeddings are disentangled -- i.e., capture complementary information relevant to the targeted aspects -- we performed two qualitative studies.
 
 First, we assembled 87 articles (not seen in training) describing clinical trials from a review on the effectiveness of decision aids \cite{o2009decision} for: women with, at risk for, and genetically at risk for, breast cancer (BCt, BCs and BCg, respectively); type II diabetes (D); menopausal women (MW); pregnant women generally (PW) and those who have undergone a C-section previously (PWc); people at risk for colon cancer (CC); men with and at risk of prostate cancer (PCt and PCs, respectively) and individuals with atrial fibrillation (AF). This review is unusual in that it \emph{studies a single intervention (decision aids) across different populations}. Thus, if the model is successful in learning disentangled representations, the corresponding P vectors should roughly cluster, while the I/C should not. 
 
 Figure \ref{figure:DATSNE} shows a TSNE-reduced plot of the P, I/C and O embeddings induced by our model for these studies. Abstracts are color-coded to indicate the populations enumerated above. As hypothesized, P embeddings realize the clearest separation with respect to the populations, while the I and O embeddings of studies do not co-localize to the same degree. This is reflected quantitatively in the AUC values achieved using each aspect embedding (listed on the Figure). This result implies disentanglement along the desired axes.
-%the study I vectors do not cluster with trial populations, aligning with our prior expectations as these involve the same category of intervention. %The O vectors exhibit some clustering which is reasonable because studies of similar populations will often use similar outcome measures. This result can be quantitatively measured by computing the AUC values for the DA dataset using only P, I/C or O embeddings. In Table \ref{table:AUCs-DA}, We observe that the population embeddings give higher AUC score than I/C and O embeddings which is reasonable since population is the discriminative factor for this dataset.
 
 \begin{figure*}
 \includegraphics[width=\linewidth]{figures/decisionaidsauc.pdf}
-\vspace{-2.75em}
+\vspace{-2em}
 \caption{TSNE-reduced scatter of disentangled PICO embeddings of abstracts involving ``decision aid" interventions. Abstracts are colored by known population group (see legend). Population embeddings for studies in the same group co-localize, more so than in the intervention and outcome space.}
 \label{figure:DATSNE}
 \vspace{-.75em}
@@ -490,17 +677,16 @@ Next we assembled 50 abstracts describing trials involving \emph{hip replacement
 \begin{table}
 \small
 \begin{tabularx}{\columnwidth}{c|X X X}
-\hline
 & HipRepl I & HipRepl P & Mean \\ \hline
 Population & 0.62 & \textbf{0.68} & \textbf{0.66} \\ 
 Intervention & \textbf{0.91} & 0.46 & 0.57 \\ 
 Outcome & 0.89 & 0.42 & 0.54 \\ 
 % bcw: I think we should just drop O here?
 \end{tabularx}
-\vspace{-.65em}
+%\vspace{-.65em}
 \caption{AUCs realized over HipRepl studies using different embeddings. Column: Study label (HipRepl as P or I). Row: Aspect embedding used.}
 \label{table:pubmed-AUCS}
-\vspace{-.75em}
+%\vspace{-.75em}
 \end{table}
 
 \begin{table}%[h]
@@ -513,7 +699,7 @@ Outcome & 0.89 & 0.42 & 0.54 \\
 {\bf Intervention} \emph{adjunct}, \emph{alone}, \emph{an}, \emph{discussion}, \emph{intervention}, \emph{methods}, \emph{reduced}, \emph{started}, \emph{took}, \emph{written} \\ \hline
 {\bf Outcome} \emph{adults}, \emph{area}, \emph{either}, \emph{eligible}, \emph{importance}, \emph{improve}, \emph{mortality}, \emph{pre}, \emph{reduces}, \emph{survival} \\ %\hline
 \end{tabularx}
-\vspace{-1em}
+%\vspace{-1em}
 \caption{Top ten most activated words, as determined by the gating mechanism.}
 \label{table:picomost}
 \vspace{-1em}
@@ -540,16 +726,17 @@ Outcome & 0.89 & 0.42 & 0.54 \\
 
 \end{comment}
 
-\vspace{-.35em}
+%\vspace{-.35em}
 \subsection{Multi-Aspect Reviews}
-\vspace{-.5em}
+%\vspace{-.5em}
 
 We now turn from the specialized domain of biomedical abstracts to more general applications. In particular, we consider learning disentangled representations of beer, hotel and restaurant reviews. Learned embeddings should capture different aspects, e.g., taste or look in the case of beer.
 
-\vspace{-.2em}
+%\vspace{-.2em}
 \subsubsection{Beer Reviews (BeerAdvocate)}
-\vspace{-.25em}
+%\vspace{-.25em}
 \begin{table}%[h]
+\setlength{\tabcolsep}{2pt}
 \footnotesize
     \centering
     \begin{tabularx}{\columnwidth}{ l X X X X }
@@ -567,9 +754,9 @@ We now turn from the specialized domain of biomedical abstracts to more general 
     CNN + Triplet & \textbf{0.92} & \textbf{0.93} & \textbf{0.94} & \textbf{0.96} \\
     %\hline
     \end{tabularx}
-    \vspace{-1em}
+    %\vspace{-.5em}
     \caption{AUC results for different representations on the BeerAdvocate data. Models beneath the second line are supervised.}
-    \vspace{-.75em}
+    %\vspace{-.75em}
     \label{table:beerauc}
 \end{table}
 
@@ -585,13 +772,28 @@ We now turn from the specialized domain of biomedical abstracts to more general 
     Taste & 0.90 & 0.94 & 0.95 & 0.96 \\ 
     %\hline
     \end{tabularx}
-    \vspace{-1em}
+    %\vspace{-.5em}
     \caption{Cross AUC results for different representations on the BeerAdvocate data. Row: Embedding used. Column: Aspect evaluated against. }
-    \vspace{-1.5em}
+    %\vspace{-.75em}
     \label{table:beercrossauc}
 \end{table}
 
-We conducted experiments on the BeerAdvocate dataset \cite{mcauley2012learning}, which contains 1.5M reviews of beers that address four aspects: \emph{appearance}, \emph{aroma}, \emph{palate}, and \emph{taste}. Free-text reviews are associated with aspect-specific numerical ratings for each of these, ranging from 1 to 5. We consider ratings $<3$ as negative and $>3$ as positive, and use these to generate triplets of reviews. For each aspect $a$, we construct triplets $(s, d, o)_a$ by first randomly sampling a review $d$. We then select $s$ to be a review with the same sentiment with respect to $a$ as $d$, and $o$ to be a review with the opposite sentiment regarding $a$. We selected 90K reviews for experiments, such that we had an equal number of positive and negative reviews for each aspect. We only keep words appearing in at least 5 documents, converting all others to $\texttt{unk}$. We truncated reviews to 95 percentile length. We split our data into 80/10/10 ratio for training, validation and testing, respectively. % bcw: again 2000 is kind of low, might raise some eyebrows
+\begin{table}%[h]
+\setlength{\tabcolsep}{2pt}
+\footnotesize
+\centering
+\begin{tabularx}{\columnwidth}{l|X X|X X|X X|X X}
+ & \multicolumn{2}{c|}{Look}  & \multicolumn{2}{c|}{Aroma}  & \multicolumn{2}{c|}{Palate} & \multicolumn{2}{c}{Taste} \\ \hline
+Look & - & - & 0.42 &	0.60 & 0.40	& 0.63	& 0.38	& 0.65 \\ %\hline
+Aroma & 0.33 & 0.69 & - & - & 0.41 & 0.59 & 0.41 & 0.60 \\ %\hline
+Palate & 0.32 & 0.70 & 0.46 & 0.54 & - & - & 0.49 & 0.52 \\ %\hline
+Taste & 0.23 & 0.80 & 0.35 & 0.66 & 0.33 & 0.67 & - & - \\
+\end{tabularx}
+\caption{`Decorrelated' cross-AUC results on the BeerAdvocate data, which attempt to mitigate confounding due to overall sentiment being correlated. Each cell reports metrics over subsets of reviews in which the sentiment differs between the row and column aspects. The numbers in each cell are the AUCs w.r.t. sentiment regarding the column aspect achieved using the row and column aspect representations, respectively.}
+\label{table:decorrelated}
+\end{table}
+
+We conducted experiments on the BeerAdvocate dataset \cite{mcauley2012learning}, which contains 1.5M reviews of beers that address four aspects: \emph{appearance}, \emph{aroma}, \emph{palate}, and \emph{taste}. Free-text reviews are associated with aspect-specific numerical ratings for each of these, ranging from 1 to 5. We consider ratings $<3$ as negative, and $>3$ as positive, and use these to generate triplets of reviews. For each aspect $a$, we construct triplets $(s, d, o)_a$ by first randomly sampling a review $d$. We then select $s$ to be a review with the same sentiment with respect to $a$ as $d$, and $o$ to be a review with the opposite sentiment regarding $a$. We selected 90K reviews for experiments, such that we had an equal number of positive and negative reviews for each aspect. We only keep words appearing in at least 5 documents, converting all others to $\texttt{unk}$. We truncated reviews to 95 percentile length. We split our data into 80/10/10 ratio for training, validation and testing, respectively. % bcw: again 2000 is kind of low, might raise some eyebrows
 
 \vspace{.25em}
 \noindent \textbf{Baselines}. We used the same baselines as for the PICO domain, save for \emph{RR-TF}, which was domain-specific. Here we also evaluate the result of replacing the CNN-based encoder with NVDM, BoW and DSSM based encoders, respectively, each trained using triplet loss.%\footnote{It was unclear how to exploit this supe}
@@ -603,9 +805,11 @@ We conducted experiments on the BeerAdvocate dataset \cite{mcauley2012learning},
 \noindent \textbf{Metrics}. We again performed an IR-type evaluation to assess the utility of representations. For each aspect $k$, we constructed an affinity matrix $A^k$ such that $A^k_{ij} = {\textit sim}_k(r_i, r_j)$ for beer reviews $r_i$ and $r_j$. We consider two reviews similar under a given aspect $k$ if they have the same (dichotomized) sentiment value for said aspect. We compute AUCs for each review and aspect using the affinity matrix $A_k$. The AUC values are averaged over reviews in the test set to obtain a final AUC metric for each aspect. We also report cross AUC measures in which we use embeddings for aspect $k$ to distinguish reviews under aspect $k'$. % the affinity matrix $A_k$ for aspect $k$ is used to compare against the ground truth for aspect $k'$. That is, 
 
 \vspace{.25em}
-\noindent \textbf{Results} We report the AUC measures for each aspect on our test set using different representations in Table \ref{table:beerauc}. Our model consistently outperforms baseline strategies over all aspects. Unsurprisingly, the model outperforms unsupervised approaches.\footnote{We are not sure why ABAE \cite{he-2017} performs so poorly on the review corpora. It may simply fail to prominently encode sentiment, which is important for these tasks. We note that this model performs reasonably well on the PICO data above, and qualitatively seems to recover reasonable aspects (though not specifically sentiment).} We realize consistent (though modest) improvement over triplet-supervised approaches that use alternative encoders. %though clearly  triplet-loss is more important than the specific encoder architecture used. 
+\noindent \textbf{Results} We report the AUC measures for each aspect on our test set using different representations in Table \ref{table:beerauc}. Our model consistently outperforms baseline strategies over all aspects. Unsurprisingly, the model outperforms unsupervised approaches.\footnote{We are not sure why ABAE \cite{he-2017} performs so poorly on the review corpora. It may simply fail to prominently encode sentiment, which is important for these tasks. We note that this model performs reasonably well on the PICO data above, and qualitatively seems to recover reasonable aspects (though not specifically sentiment).} We realize consistent though modest improvement over triplet-supervised approaches that use alternative encoders. %though clearly  triplet-loss is more important than the specific encoder architecture used. 
 
-In Table \ref{table:beercrossauc} we present cross AUC evaluations. Rows correspond to the embedding used and columns to the aspect evaluated against. As expected, aspect-embeddings perform better w.r.t.~the aspects for which they code, suggesting some disentanglement. However, the reduction in performance when using one aspect representation to discriminate w.r.t.~others is not as pronounced as above. This is because aspect ratings are highly correlated: if taste is positive, aroma is very likely to be as well. Effectively, here sentiment entangles all of these aspects.\footnote{Another view is that we are in fact inducing representations of $<$aspect, sentiment$>$ pairs, and only the aspect varies across these; thus representations remain discriminative (w.r.t.~sentiment) across aspects.} To further delve into this, we report results on `decorrelated' subsets of the BeerAdvocate data in the Appendix. 
+In Table \ref{table:beercrossauc} we present cross AUC evaluations. Rows correspond to the embedding used and columns to the aspect evaluated against. As expected, aspect-embeddings perform better w.r.t.~the aspects for which they code, suggesting some disentanglement. However, the reduction in performance when using one aspect representation to discriminate w.r.t.~others is not as pronounced as above. This is because aspect ratings are highly correlated: if taste is positive, aroma is very likely to be as well. Effectively, here sentiment entangles all of these aspects.\footnote{Another view is that we are in fact inducing representations of $<$aspect, sentiment$>$ pairs, and only the aspect varies across these; thus representations remain discriminative (w.r.t.~sentiment) across aspects.} 
+
+In Table \ref{table:decorrelated}, we evaluate cross AUC performance for beer by first `decorrelating' the aspects. Specifically, for each cell $(k, k')$ in the table, we first retrieve the subset of reviews in which the sentiment w.r.t. $k$ differs from the sentiment w.r.t. $k'$. Then we evaluate the AUC similarity of these reviews on the basis of sentiment concerning $k'$ using both $k$ and $k'$ embeddings, yielding a pair of AUCs (listed respectively). We observe that the using $k'$ embeddings to evaluate aspect $k'$ similarity yields better results than using $k$ embeddings.
 
 We present the most activated words for each aspect (as per the gating mechanism) in Table \ref{table:Beermost}. And we present an illustrative review color-coded with aspect-wise gate activations in Table \ref{table:beer-example}. For completeness, we reproduce the top words for aspects discovered using \newcite{he-2017} in the Appendix; these do not obviously align with the target aspects, which is unsurprising given that this is an unsupervised method.
 
@@ -619,7 +823,7 @@ We present the most activated words for each aspect (as per the gating mechanism
 {\bf Palate} \emph{bother}, \emph{crafted}, \emph{luscious}, \emph{mellow}, \emph{mint}, \emph{range}, \emph{recommended}, \emph{roasted}, \emph{tasting}, \emph{weight} \\\hline 
 {\bf Taste} \emph{amazingly}, \emph{down}, \emph{highly}, \emph{product}, \emph{recommended}, \emph{tasted}, \emph{thoroughly}, \emph{to}, \emph{truly}, \emph{wow} \\
 \end{tabularx}
-\vspace{-1em}
+%\vspace{-1em}
 \caption{Most activated words for aspects on the beer corpus, as per the gating mechanism.}
 \label{table:Beermost}
 \vspace{-1em}
@@ -629,24 +833,24 @@ We present the most activated words for each aspect (as per the gating mechanism
 \footnotesize
 \centering
 \begin{tabularx}{\textwidth}{X|X|X|X}
-\textbf{Look} : {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut \strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{red!80!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{red!58!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{red!34!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{red!48!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{red!75!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{red!92!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{red!87!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{red!53!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{red!20!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{red!27!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{red!27!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{red!27!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!2!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{red!5!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{red!5!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{red!2!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut .}} & \textbf{Aroma} : {\setlength{\fboxsep}{0pt}\colorbox{green!1!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{green!1!white}{\strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!15!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{green!16!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{green!16!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{green!47!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{green!47!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{green!100!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{green!97!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{green!97!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{green!97!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{green!51!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!50!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{green!53!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{green!53!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{green!27!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{green!27!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{green!71!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{green!58!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{green!58!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{green!13!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!18!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{green!18!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{green!18!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut .}} & \textbf{Palate} : {\setlength{\fboxsep}{0pt}\colorbox{cyan!20!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!10!white}{\strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!33!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!4!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!36!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!39!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!34!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!3!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!3!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!3!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!5!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!1!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!1!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!2!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!35!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!69!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!98!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!64!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!31!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!33!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!66!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!100!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!98!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!65!white}{\strut .}} & \textbf{Taste} :{\setlength{\fboxsep}{0pt}\colorbox{yellow!40!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!42!white}{\strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!12!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!6!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!49!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!94!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!100!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!55!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!10!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!11!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!11!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!53!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!43!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!43!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!34!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!35!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!37!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!3!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!41!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!39!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!39!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!44!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!48!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!48!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!6!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!35!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!66!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!94!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!61!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!29!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!15!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!35!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!70!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!58!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!38!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!2!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!19!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!20!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!17!white}{\strut .}}
+\textbf{Look} : {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{red!80!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{red!58!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{red!34!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{red!48!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{red!75!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{red!92!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{red!99!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{red!87!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{red!53!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{red!20!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{red!27!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{red!27!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{red!27!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!2!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{red!5!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{red!5!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{red!2!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{red!0!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{red!31!white}{\strut .}} & \textbf{Aroma} : {\setlength{\fboxsep}{0pt}\colorbox{green!1!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{green!1!white}{\strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!15!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{green!16!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{green!16!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{green!47!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{green!47!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{green!100!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{green!97!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{green!97!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{green!97!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{green!51!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!50!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{green!53!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{green!53!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!3!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{green!27!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{green!27!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{green!71!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{green!58!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{green!58!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{green!13!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!18!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{green!18!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{green!18!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{green!0!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{green!52!white}{\strut .}} & \textbf{Palate} : {\setlength{\fboxsep}{0pt}\colorbox{cyan!20!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!10!white}{\strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!33!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!4!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!36!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!39!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!34!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!3!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!3!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!3!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!5!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!1!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!1!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!0!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!2!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!35!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!69!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!98!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!64!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!31!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!33!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!66!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!100!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!99!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!98!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{cyan!65!white}{\strut .}} & \textbf{Taste} :{\setlength{\fboxsep}{0pt}\colorbox{yellow!40!white}{\strut deep}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!42!white}{\strut amber}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!12!white}{\strut hue}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!6!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!49!white}{\strut this}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!94!white}{\strut brew}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!100!white}{\strut is}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!55!white}{\strut topped}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!10!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut a}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut finger}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut off}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut white}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut head}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!11!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!11!white}{\strut smell}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!53!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!43!white}{\strut dog}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!43!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!34!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!35!white}{\strut green}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!37!white}{\strut unk}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!3!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!41!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!39!white}{\strut slightly}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!39!white}{\strut fruity}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!0!white}{\strut taste}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!44!white}{\strut of}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!48!white}{\strut belgian}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!48!white}{\strut yeast}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!6!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!35!white}{\strut coriander}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!66!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!94!white}{\strut hard}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!61!white}{\strut water}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!29!white}{\strut and}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!4!white}{\strut bready}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!15!white}{\strut malt}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!35!white}{\strut .}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!70!white}{\strut light}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!58!white}{\strut body}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!38!white}{\strut ,}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!2!white}{\strut with}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!19!white}{\strut little}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!20!white}{\strut carbonation}} {\setlength{\fboxsep}{0pt}\colorbox{yellow!17!white}{\strut .}}
 \end{tabularx}
-\vspace{-.75em}
-\caption{Gate activations for each aspect in an example review. Note that because gates are calculated at the final convolution layer, activations are not in exact 1-1 correspondence with words.}
+%\vspace{-.75em}
+\caption{Gate activations for each aspect in an example beer review. }
 \label{table:beer-example}
-\vspace{-.75em}
+%\vspace{-.75em}
 \end{table*} 
 
-\vspace{-.3em}
+%\vspace{-.3em}
 \subsubsection{Hotel \& Restaurant Reviews}
-\vspace{-.25em}
+%\vspace{-.25em}
 
 %The TripAdvisor data includes reviews of hotels with ratings (range 1 to 5). The Yelp! corpus includes restaurant reviews on the same scale.
-Finally, we attempt to learn embeddings that disentangle domain from sentiment in reviews. For this we use a combination of TripAdvisor and Yelp! ratings data. The former comprises reviews of hotels, the latter of restaurants; both use a scale of 1 to 5. We convert ratings into positive/negative labels as above. Here we consider aspects to be the domain (with values hotel and restaurant) and the sentiment (positive and negative). We aim to generate embeddings that capture information about only one of these aspects. We use 50K reviews from each dataset for training and 5K for testing. 
+Finally, we attempt to learn embeddings that disentangle domain from sentiment in reviews. For this we use a combination of TripAdvisor and Yelp! ratings data. The former comprises reviews of hotels, the latter of restaurants; both use a scale of 1 to 5. We convert ratings into positive/negative labels as above. Here we consider aspects to be the domain (hotel or restaurant) and the sentiment (positive or negative). We aim to generate embeddings that capture information about only one of these aspects. We use 50K reviews from each dataset for training and 5K for testing. 
 % about the domain (restaurant vs hotel) or sentiment (positive vs negative)
 
 \vspace{.2em}
-\noindent \textbf{Baselines} We use the same baselines as for the BeerAdvocate data, and similarly use different encoder models trained under triplet loss.
+\noindent \textbf{Baselines}. We use the same baselines as for the BeerAdvocate data, and similarly use different encoder models trained under triplet loss.
 
 \begin{table}
 \footnotesize
@@ -665,9 +869,9 @@ Finally, we attempt to learn embeddings that disentangle domain from sentiment i
     DSSM + Triplet &  \textbf{0.99} & 0.90 \\
     CNN + Triplet & \textbf{0.99} & \textbf{0.92}  \\
     \end{tabularx}
-    \vspace{-1em}
+    %\vspace{-.75em}
     \caption{AUC results for different representations on the Yelp!/TripAdvisor Data. Models beneath the second line are supervised.}
-    \vspace{-.35em}
+    %\vspace{-.25em}
     \label{table:foodauc}
 \end{table}
 
@@ -682,7 +886,7 @@ Finally, we attempt to learn embeddings that disentangle domain from sentiment i
 
 
 
-\begin{table}[h]
+\begin{table}%[h]
 \footnotesize
     \centering
     \begin{tabularx}{\columnwidth}{l X X}
@@ -692,9 +896,9 @@ Finally, we attempt to learn embeddings that disentangle domain from sentiment i
     Sentiment & 0.510 & 0.917  \\
     %\hline
     \end{tabularx}
-    \vspace{-1em}
+    %\vspace{-.75em}
     \caption{Cross AUC results for different representations for Yelp!/TripAdvisor Dataset.}
-    \vspace{-1.5em}
+    %\vspace{-1.0em}
     \label{table:foodcrossauc}
 \end{table}
 
@@ -703,7 +907,7 @@ Finally, we attempt to learn embeddings that disentangle domain from sentiment i
 
 %\vspace{-.5em}
 \section{Related Work}
-\vspace{-.5em}
+%\vspace{-.5em}
 \label{section:related-work}
 %Neural models capitalize on dense, distributed representations (i.e., embeddings) that represent individual words \cite{mikolov2013distributed} or other linguistic units such as sentences \cite{le2014distributed}. Intuitively, such embeddings encode a \emph{distributional semantics} \cite{firth1957synopsis}: similar words (or sentences) will be placed nearby one another in the embedding space.
 
@@ -725,16 +929,25 @@ Other recent work has focused on text \emph{generation} from factorized represen
 
 %On the other hand, in many tasks we cannot explicitly label or even define discrete values for a given aspect whereas similarity judgments are easier to obtain.
 
-There is also a large body of work that uses probabilistic generative models to recover latent structure in texts. Many of these models derive from Latent Dirichlet Allocation (LDA) \cite{blei2003latent}. Some variants of topic modeling have explicitly represented topics and aspects jointly for sentiment tasks \cite{brody2010unsupervised,sauper2010incorporating,sauper2011content,mukherjee2012aspect,sauper2013automatic,kim2013hierarchical}. A bit more generally, \emph{aspects} have also been interpreted as properties spanning entire texts, e.g., a perspective or theme which may then color the discussion of topics \cite{paul2010two}. This intuition led to the development of the \emph{factorial LDA} family of topic models \cite{paul2012factorial,wallace2014large}; these model individual word probability as a product of multiple latent factors characterizing a text. This is similar to the Sparse Additive Generative (SAGE) model of text proposed by \newcite{SAGE}.%Eisenstein \cite{SAGE}. 
+There is also a large body of work that uses probabilistic generative models to recover latent structure in texts. Many of these models derive from Latent Dirichlet Allocation (LDA) \cite{blei2003latent}, and some variants have explicitly represented topics and aspects jointly for sentiment tasks \cite{brody2010unsupervised,sauper2010incorporating,sauper2011content,mukherjee2012aspect,sauper2013automatic,kim2013hierarchical}. 
+
+A bit more generally, \emph{aspects} have also been interpreted as properties spanning entire texts, e.g., a perspective or theme which may then color the discussion of topics \cite{paul2010two}. This intuition led to the development of the \emph{factorial LDA} family of topic models \cite{paul2012factorial,wallace2014large}; these model individual word probability as a product of multiple latent factors characterizing a text. This is similar to the Sparse Additive Generative (SAGE) model of text proposed by \newcite{SAGE}.%Eisenstein \cite{SAGE}. 
 
 % bcw: not sure we need this stuff, since focus not on auto-encoders here
 %Several neural approaches to document modeling have recently been proposed, including the Neural Variational Document Model (NVDM) \cite{miao2016neural}, autoencoding LDA, and extensions thereof \cite{srivastava2017autoencoding}. The above models all learn a representation $z \in R^K$ of a document in which each component $z_k$ is associated with a vector $\beta_k$ of log-frequencies (NVDM) or probabilities (autoencoding LDA) that encodes a topic. This representation is entangled in the sense that we would generally not expect to be able to identify subsets of topics pertaining to specific aspects.
 
-\vspace{-.25em}
+%\vspace{-.25em}
 \section{Conclusions}
-\vspace{-.5em}
+%\vspace{-.5em}
+
+We have proposed an approach for inducing disentangled representations of text. To learn such representations we have relied on supervision codified in aspect-wise similarity judgments expressed as document triplets. This provides a general supervision framework and objective. We evaluated this approach on three datasets, each with different aspects. Our experimental results demonstrate that this approach indeed induces aspect-specific embeddings that are qualitatively interpretable and achieve superior performance on information retrieval tasks. 
+
 Going forward, disentangled representations may afford additional advantages in NLP, e.g., by facilitating transfer \cite{zhang2017aspect}, or supporting aspect-focused summarization models. 
-We have proposed an approach for inducing disentangled representations of text. To learn such representations we have relied on supervision codified in aspect-wise similarity judgments provided as document triplets. We evaluated this approach on three datasets, each with different aspects. Our experimental results demonstrate that this approach indeed induces aspect-specific embeddings that are qualitatively interpretable and achieve superior performance on information retrieval tasks. 
+
+
+\section{Acknowledgements}
+This work was supported by National Library of Medicine (NLM) of the National Institutes of Health (NIH) award R01LM012086, and by the Army Research Office (ARO) award W911NF1810328. The content is solely the responsibility of the authors.
+
 
 \bibliography{emnlp2018}
 \bibliographystyle{acl_natbib_nourl}
